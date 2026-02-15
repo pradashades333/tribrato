@@ -21,8 +21,11 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --target Tribrato_VST3
 
+      - name: Zip VST3 bundle
+        run: cd build/Tribrato_artefacts/Release/VST3 && zip -r Tribrato.vst3.zip Tribrato.vst3
+
       - name: Upload VST3
         uses: actions/upload-artifact@v4
         with:
           name: Tribrato-macOS-VST3
-          path: build/Tribrato_artefacts/Release/VST3/Tribrato.vst3
+          path: build/Tribrato_artefacts/Release/VST3/Tribrato.vst3.zip
