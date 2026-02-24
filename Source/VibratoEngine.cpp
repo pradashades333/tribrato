@@ -18,6 +18,10 @@ void VibratoEngine::reset()
     variationTarget    = 0.0f;
     variationCountdown = 0;
     formantUpdateCounter = 0;
+    pitchEnvelope      = 0.0f;
+    smoothedDelay      = BASE_DELAY;
+    smoothedPitchCents = 0.0f;
+    smoothedAmpDepth   = 0.0f;
 
     for (int ch = 0; ch < MAX_CHANNELS; ++ch)
         for (int f = 0; f < NUM_FORMANTS; ++f)
@@ -31,11 +35,26 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
     const int numChannels = juce::jmin (buffer.getNumChannels(), MAX_CHANNELS);
 
     // Envelope rates -----------------------------------------------------------
-    const float attackRate  = 1.0f / juce::jmax (1.0f,
-                                (p.onsetMs / 1000.0f) * static_cast<float> (sr));
-    const float releaseRate = 1.0f / juce::jmax (1.0f,
-                                0.015f * static_cast<float> (sr));   // 15 ms
-    const float envTarget   = p.triggered ? 1.0f : 0.0f;
+    const float attackRate      = 1.0f / juce::jmax (1.0f,
+                                    (p.onsetMs / 1000.0f) * static_cast<float> (sr));
+    // 80 ms release for amplitude/formant — tight enough to feel responsive
+    const float releaseRate     = 1.0f / juce::jmax (1.0f,
+                                    0.080f * static_cast<float> (sr));
+    // 300 ms release for pitch only — delay position returns slowly, no Doppler snap
+    const float pitchReleaseRate = 1.0f / juce::jmax (1.0f,
+                                    0.300f * static_cast<float> (sr));
+    const float envTarget        = p.triggered ? 1.0f : 0.0f;
+
+    // Smoothing coefficients (one-pole, per-sample) ----------------------------
+    // 30 ms pitch smoother — prevents snap clicks when the knob is moved
+    const float pitchSmoothCoeff = 1.0f - std::exp (
+                                    -1.0f / (0.030f * static_cast<float> (sr)));
+    // 30 ms amp-depth smoother — prevents snap when amplitude knob is turned
+    const float ampSmoothCoeff   = 1.0f - std::exp (
+                                    -1.0f / (0.030f * static_cast<float> (sr)));
+    // 5 ms delay-position smoother — eliminates residual micro-clicks
+    const float delaySmoothCoeff = 1.0f - std::exp (
+                                    -1.0f / (0.005f * static_cast<float> (sr)));
 
     // Normalised depths --------------------------------------------------------
     const float ampDepth = p.amplitude / 100.0f;
@@ -45,7 +64,7 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
     // Per-sample loop ----------------------------------------------------------
     for (int i = 0; i < numSamples; ++i)
     {
-        // --- Envelope ---------------------------------------------------------
+        // --- Main envelope (amplitude + formant, 80 ms release) ---------------
         if (envelope < envTarget)
         {
             envelope += attackRate;
@@ -56,6 +75,21 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             envelope -= releaseRate;
             if (envelope < envTarget) envelope = envTarget;
         }
+
+        // --- Pitch envelope (300 ms release — prevents Doppler snap on release)
+        if (pitchEnvelope < envTarget)
+        {
+            pitchEnvelope += attackRate;
+            if (pitchEnvelope > envTarget) pitchEnvelope = envTarget;
+        }
+        else if (pitchEnvelope > envTarget)
+        {
+            pitchEnvelope -= pitchReleaseRate;
+            if (pitchEnvelope < envTarget) pitchEnvelope = envTarget;
+        }
+
+        // --- Smooth amplitude depth (prevents snap when knob is moved) --------
+        smoothedAmpDepth += ampSmoothCoeff * (ampDepth - smoothedAmpDepth);
 
         // --- Variation (slowly drifting random value) -------------------------
         if (varAmt > 0.0f)
@@ -87,30 +121,36 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
         float lfo = juce::jlimit (-1.0f, 1.0f,
                         lfoValue + variationSmoothed * varAmt * 0.15f);
 
+        // --- Smooth pitch parameter (prevents snap when knob moves) -----------
+        smoothedPitchCents += pitchSmoothCoeff * (p.pitchCents - smoothedPitchCents);
+
         // --- Delay modulation (vibrato / pitch) --------------------------------
         float delayMod = 0.0f;
-        if (p.pitchCents > 0.0f && effectiveRate > 0.0f)
+        if (smoothedPitchCents > 0.0f && effectiveRate > 0.0f)
         {
-            float effPitch = p.pitchCents
+            float effPitch = smoothedPitchCents
                            * (1.0f + variationSmoothed * varAmt * 0.15f);
             effPitch = juce::jmax (0.0f, effPitch);
 
             float modAmp = (std::pow (2.0f, effPitch / 1200.0f) - 1.0f)
                          * static_cast<float> (sr)
                          / (2.0f * juce::MathConstants<float>::pi * effectiveRate);
-            delayMod = lfo * modAmp * envelope;
+            delayMod = lfo * modAmp * pitchEnvelope;   // slow-release pitch envelope
         }
 
         float totalDelay = BASE_DELAY + delayMod;
         totalDelay = juce::jlimit (2.0f,
                         static_cast<float> (DELAY_BUF_SIZE - 4), totalDelay);
 
+        // Smooth the delay read-position — eliminates clicks on trigger/release
+        smoothedDelay += delaySmoothCoeff * (totalDelay - smoothedDelay);
+
         // --- Amplitude modulation (tremolo) ------------------------------------
-        // Swings between (1 - depth*envelope) and 1.
-        // Makeup gain restores the mean level so perceived loudness stays constant.
-        float ampMod    = 1.0f - ampDepth * envelope * (1.0f - lfo) * 0.5f;
+        // Uses smoothedAmpDepth so knob changes never snap.
+        // Makeup gain restores mean level so perceived loudness stays constant.
+        float ampMod    = 1.0f - smoothedAmpDepth * envelope * (1.0f - lfo) * 0.5f;
         float ampMakeup = juce::jmin (3.0f,
-                            1.0f / juce::jmax (0.1f, 1.0f - ampDepth * envelope * 0.5f));
+                            1.0f / juce::jmax (0.1f, 1.0f - smoothedAmpDepth * envelope * 0.5f));
 
         // --- Update formant filter coeffs every 32 samples --------------------
         if (fmtDepth > 0.0f && envelope > 0.001f)
@@ -139,18 +179,21 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             // Write into delay line
             delayBuf[ch][writePos] = input;
 
-            // Read from delay line (vibrato)
-            float delayed = readDelay (ch, totalDelay);
+            // Read from delay line using smoothed position (click-free)
+            float delayed = readDelay (ch, smoothedDelay);
 
-            // Formant colouring
+            // Formant colouring with loudness compensation
             float processed = delayed;
             if (fmtDepth > 0.0f && envelope > 0.001f)
             {
-                float fGain = fmtDepth * envelope * 0.8f;
+                float fGain = fmtDepth * envelope * 0.5f;
                 float fSum  = 0.0f;
                 for (int f = 0; f < NUM_FORMANTS; ++f)
                     fSum += formantFilters[ch][f].processBandpass (delayed);
-                processed = delayed + fGain * fSum;
+
+                // Compensate for level increase caused by resonant peaks
+                float fCompensation = 1.0f / (1.0f + fmtDepth * envelope * 0.35f);
+                processed = (delayed + fGain * fSum) * fCompensation;
             }
 
             // Tremolo with level compensation

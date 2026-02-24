@@ -84,6 +84,15 @@ private:
     float formantBaseFreqs[NUM_FORMANTS] = { 600.0f, 1500.0f, 2800.0f };
     int   formantUpdateCounter = 0;
 
+    // Envelope -----------------------------------------------------------------
+    float pitchEnvelope = 0.0f;   // slow-release envelope used only for pitch/delay mod
+                                  // decoupled from main envelope to prevent Doppler snap
+
+    // Smoothed state (click/pop prevention) ------------------------------------
+    float smoothedDelay      = BASE_DELAY;  // tracks totalDelay, prevents read-pos jumps
+    float smoothedPitchCents = 0.0f;        // tracks p.pitchCents, prevents knob-snap clicks
+    float smoothedAmpDepth   = 0.0f;        // tracks ampDepth, prevents amplitude snap
+
     // Helpers ------------------------------------------------------------------
     float readDelay (int channel, float delaySamples) const;
 };
