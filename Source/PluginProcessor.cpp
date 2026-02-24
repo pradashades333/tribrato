@@ -100,9 +100,9 @@ void TribratProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         return out;
     };
 
-    engine1.process (buffer, readParams (1));   // Row 1 first
-    engine2.process (buffer, readParams (2));   // Row 2 in series
-    engine3.process (buffer, readParams (3));   // Row 3 in series
+    engine1.process (buffer, readParams (1));
+    engine2.process (buffer, readParams (2));
+    engine3.process (buffer, readParams (3));
 }
 
 //==============================================================================

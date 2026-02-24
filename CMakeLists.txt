@@ -24,7 +24,6 @@ juce_add_binary_data(TribratoBinaryData
         tribrato_ui_pngs/tribrato_ui_pngs/toggle2_right.png
         tribrato_ui_pngs/tribrato_ui_pngs/toggle3_left.png
         tribrato_ui_pngs/tribrato_ui_pngs/toggle3_right.png
-        tribrato_ui_pngs/tribrato_ui_pngs/gui_on.png
 )
 
 juce_add_plugin(Tribrato

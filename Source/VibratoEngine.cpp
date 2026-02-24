@@ -18,8 +18,6 @@ void VibratoEngine::reset()
     variationTarget    = 0.0f;
     variationCountdown = 0;
     formantUpdateCounter = 0;
-    smoothedDelay      = BASE_DELAY;
-    smoothedPitchCents = 0.0f;
 
     for (int ch = 0; ch < MAX_CHANNELS; ++ch)
         for (int f = 0; f < NUM_FORMANTS; ++f)
@@ -35,21 +33,14 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
     // Envelope rates -----------------------------------------------------------
     const float attackRate  = 1.0f / juce::jmax (1.0f,
                                 (p.onsetMs / 1000.0f) * static_cast<float> (sr));
-    // 80 ms release — long enough to avoid pitch/amplitude clicks
     const float releaseRate = 1.0f / juce::jmax (1.0f,
-                                0.080f * static_cast<float> (sr));
+                                0.015f * static_cast<float> (sr));   // 15 ms
     const float envTarget   = p.triggered ? 1.0f : 0.0f;
 
     // Normalised depths --------------------------------------------------------
     const float ampDepth = p.amplitude / 100.0f;
     const float fmtDepth = p.formant   / 100.0f;
     const float varAmt   = p.variation  / 100.0f;
-
-    // Per-block smoothing coefficients (cheap exp approximation) ---------------
-    // 30 ms pitch smoother — prevents snapping when knob is turned
-    const float pitchSmoothCoeff = 1.0f - std::exp (-1.0f / (0.030f * static_cast<float> (sr)));
-    // 5 ms delay smoother — kills click on trigger start/stop
-    const float delaySmoothCoeff = 1.0f - std::exp (-1.0f / (0.005f * static_cast<float> (sr)));
 
     // Per-sample loop ----------------------------------------------------------
     for (int i = 0; i < numSamples; ++i)
@@ -81,13 +72,10 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             variationSmoothed = 0.0f;
         }
 
-        // --- Smooth pitch parameter (prevents snap when knob moves) -----------
-        smoothedPitchCents += pitchSmoothCoeff * (p.pitchCents - smoothedPitchCents);
-
         // --- LFO --------------------------------------------------------------
         float effectiveRate = p.rateHz
                             * (1.0f + variationSmoothed * varAmt * 0.25f);
-        effectiveRate = juce::jmax (1.0f, effectiveRate);   // min 1 Hz
+        effectiveRate = juce::jmax (1.0f, effectiveRate);
 
         lfoPhase += effectiveRate / static_cast<float> (sr);
         while (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
@@ -101,9 +89,9 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
 
         // --- Delay modulation (vibrato / pitch) --------------------------------
         float delayMod = 0.0f;
-        if (smoothedPitchCents > 0.0f && effectiveRate > 0.0f)
+        if (p.pitchCents > 0.0f && effectiveRate > 0.0f)
         {
-            float effPitch = smoothedPitchCents
+            float effPitch = p.pitchCents
                            * (1.0f + variationSmoothed * varAmt * 0.15f);
             effPitch = juce::jmax (0.0f, effPitch);
 
@@ -117,12 +105,9 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
         totalDelay = juce::jlimit (2.0f,
                         static_cast<float> (DELAY_BUF_SIZE - 4), totalDelay);
 
-        // Smooth the delay position to eliminate clicks on trigger/release ------
-        smoothedDelay += delaySmoothCoeff * (totalDelay - smoothedDelay);
-
         // --- Amplitude modulation (tremolo) ------------------------------------
-        // Swings between (1 - depth*envelope) and 1, with mean-level compensation.
-        // Compensation restores the mean gain so perceived loudness stays constant.
+        // Swings between (1 - depth*envelope) and 1.
+        // Makeup gain restores the mean level so perceived loudness stays constant.
         float ampMod    = 1.0f - ampDepth * envelope * (1.0f - lfo) * 0.5f;
         float ampMakeup = juce::jmin (3.0f,
                             1.0f / juce::jmax (0.1f, 1.0f - ampDepth * envelope * 0.5f));
@@ -154,24 +139,21 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             // Write into delay line
             delayBuf[ch][writePos] = input;
 
-            // Read from delay line using smoothed position (click-free)
-            float delayed = readDelay (ch, smoothedDelay);
+            // Read from delay line (vibrato)
+            float delayed = readDelay (ch, totalDelay);
 
-            // Formant colouring with loudness compensation
+            // Formant colouring
             float processed = delayed;
             if (fmtDepth > 0.0f && envelope > 0.001f)
             {
-                float fGain = fmtDepth * envelope * 0.5f;   // reduced from 0.8
+                float fGain = fmtDepth * envelope * 0.8f;
                 float fSum  = 0.0f;
                 for (int f = 0; f < NUM_FORMANTS; ++f)
                     fSum += formantFilters[ch][f].processBandpass (delayed);
-
-                // Compensate for the level increase caused by adding resonant peaks
-                float fCompensation = 1.0f / (1.0f + fmtDepth * envelope * 0.35f);
-                processed = (delayed + fGain * fSum) * fCompensation;
+                processed = delayed + fGain * fSum;
             }
 
-            // Tremolo with makeup gain to keep perceived level consistent
+            // Tremolo with level compensation
             processed *= ampMod * ampMakeup;
 
             buffer.setSample (ch, i, processed);
