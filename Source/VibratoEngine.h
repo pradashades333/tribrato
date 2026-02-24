@@ -11,7 +11,7 @@ public:
     {
         bool  triggered  = false;
         float onsetMs    = 200.0f;   // 10 - 2000
-        float rateHz     = 5.5f;     // 0.5 - 15
+        float rateHz     = 5.5f;     // 1 - 15
         float pitchCents = 50.0f;    // 0 - 200
         float amplitude  = 0.0f;     // 0 - 100  (%)
         float formant    = 0.0f;     // 0 - 100  (%)
@@ -83,6 +83,10 @@ private:
     SVFilter formantFilters[MAX_CHANNELS][NUM_FORMANTS];
     float formantBaseFreqs[NUM_FORMANTS] = { 600.0f, 1500.0f, 2800.0f };
     int   formantUpdateCounter = 0;
+
+    // Smoothing ---------------------------------------------------------------
+    float smoothedDelay      = BASE_DELAY;  // prevents clicks on trigger/release
+    float smoothedPitchCents = 0.0f;        // prevents pitch snapping on knob changes
 
     // Helpers ------------------------------------------------------------------
     float readDelay (int channel, float delaySamples) const;

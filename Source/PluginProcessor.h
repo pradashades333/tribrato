@@ -42,7 +42,7 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    VibratoEngine engine1, engine2;
+    VibratoEngine engine1, engine2, engine3;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TribratProcessor)
 };

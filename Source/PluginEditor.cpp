@@ -11,8 +11,10 @@ static juce::Image loadImg (const void* data, int size)
 //==============================================================================
 TribratLookAndFeel::TribratLookAndFeel()
 {
-    knobShadowImg = loadImg (BinaryData::knob_shadow_png,
-                             BinaryData::knob_shadow_pngSize);
+    knobShadowImg    = loadImg (BinaryData::knob_shadow_png,
+                                BinaryData::knob_shadow_pngSize);
+    knobHighlightImg = loadImg (BinaryData::knob_highlight_png,
+                                BinaryData::knob_highlight_pngSize);
 
     setColour (juce::Label::textColourId,       juce::Colour (0xff7a7a88));
     setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xff7a7a88));
@@ -118,6 +120,15 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
         g.setColour (Colour (0xff6a6a78));
         g.fillEllipse (dx - 2, dy - 2, 4, 4);
     }
+
+    // 7 — Highlight image on top
+    if (! knobHighlightImg.isNull())
+    {
+        float sz = bodyR * 2.0f;
+        g.drawImage (knobHighlightImg,
+                     { cx - sz * 0.5f, cy - sz * 0.5f, sz, sz },
+                     RectanglePlacement::stretchToFit);
+    }
 }
 
 //==============================================================================
@@ -133,10 +144,15 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
         onImage  = loadImg (BinaryData::trigger1_on_png,  BinaryData::trigger1_on_pngSize);
         offImage = loadImg (BinaryData::trigger1_off_png, BinaryData::trigger1_off_pngSize);
     }
-    else
+    else if (rowNumber == 2)
     {
         onImage  = loadImg (BinaryData::trigger2_on_png,  BinaryData::trigger2_on_pngSize);
         offImage = loadImg (BinaryData::trigger2_off_png, BinaryData::trigger2_off_pngSize);
+    }
+    else
+    {
+        onImage  = loadImg (BinaryData::trigger3_on_png,  BinaryData::trigger3_on_pngSize);
+        offImage = loadImg (BinaryData::trigger3_off_png, BinaryData::trigger3_off_pngSize);
     }
     startTimerHz (30);
 }
@@ -186,10 +202,15 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
         leftImage  = loadImg (BinaryData::toggle1_left_png,  BinaryData::toggle1_left_pngSize);
         rightImage = loadImg (BinaryData::toggle1_right_png, BinaryData::toggle1_right_pngSize);
     }
-    else
+    else if (rowNumber == 2)
     {
         leftImage  = loadImg (BinaryData::toggle2_left_png,  BinaryData::toggle2_left_pngSize);
         rightImage = loadImg (BinaryData::toggle2_right_png, BinaryData::toggle2_right_pngSize);
+    }
+    else
+    {
+        leftImage  = loadImg (BinaryData::toggle3_left_png,  BinaryData::toggle3_left_pngSize);
+        rightImage = loadImg (BinaryData::toggle3_right_png, BinaryData::toggle3_right_pngSize);
     }
     startTimerHz (30);
 }
@@ -242,7 +263,7 @@ RowComponent::RowComponent (TribratProcessor& proc, int rowNumber)
     styleLabel (modeLabel,      "MODE",      *this, 9.0f);
     styleLabel (triggerLabel,   "TRIGGER",   *this, 9.0f);
 
-    static const char* names[]   = { "ONSET RATE", "RATE", "PITCH",
+    static const char* names[]   = { "ONSET", "RATE", "PITCH",
                                      "AMPLITUDE",  "FORMANT", "VARIATION" };
     static const char* suffixes[] = { "onset", "rate", "pitch",
                                       "amplitude", "formant", "variation" };
@@ -283,22 +304,22 @@ void RowComponent::resized()
     int  w    = area.getWidth();
 
     // ---- Toggle section (centred at top) ----
-    int toggleW = 90, toggleH = 30;
+    int toggleW = 90, toggleH = 28;
     int toggleX = (w - toggleW) / 2;
     int toggleY = 2;
     modeToggle.setBounds (toggleX, toggleY, toggleW, toggleH);
 
-    momentaryLabel.setBounds (toggleX - 82, toggleY + 7, 78, 16);
-    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 7, 50, 16);
-    modeLabel.setBounds      (toggleX, toggleY + toggleH, toggleW, 14);
+    momentaryLabel.setBounds (toggleX - 82, toggleY + 6, 78, 16);
+    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 6, 50, 16);
+    modeLabel.setBounds      (toggleX, toggleY + toggleH, toggleW, 13);
 
     // ---- Controls row ----
     int numCols  = 7;
     int colW     = 66;
     int startX   = (w - numCols * colW) / 2;
-    int ctrlY    = toggleY + toggleH + 18;
-    int knobSize = 52;
-    int trigSize  = 48;
+    int ctrlY    = toggleY + toggleH + 16;
+    int knobSize = 50;
+    int trigSize  = 46;
 
     // Column 0 — trigger button
     int col0 = startX;
@@ -311,7 +332,7 @@ void RowComponent::resized()
         int cx = startX + (i + 1) * colW;
         knobs[i].slider.setBounds    (cx + (colW - knobSize) / 2, ctrlY, knobSize, knobSize);
         knobs[i].nameLabel.setBounds (cx - 2, ctrlY + knobSize + 2, colW + 4, 13);
-        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 14, colW, 13);
+        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 14, colW, 12);
     }
 }
 
@@ -320,13 +341,15 @@ void RowComponent::resized()
 //==============================================================================
 TribratEditor::TribratEditor (TribratProcessor& p)
     : AudioProcessorEditor (p), processor (p),
-      row1 (p, 1), row2 (p, 2)
+      row1 (p, 1), row2 (p, 2), row3 (p, 3)
 {
     setLookAndFeel (&lnf);
 
+    bgImage = loadImg (BinaryData::gui_on_png, BinaryData::gui_on_pngSize);
+
     titleLabel.setText ("TRIBRATO", juce::dontSendNotification);
     titleLabel.setJustificationType (juce::Justification::centred);
-    titleLabel.setFont (juce::FontOptions (24.0f, juce::Font::bold));
+    titleLabel.setFont (juce::FontOptions (22.0f, juce::Font::bold));
     titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffccccdd));
     addAndMakeVisible (titleLabel);
 
@@ -339,8 +362,9 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 
     addAndMakeVisible (row1);
     addAndMakeVisible (row2);
+    addAndMakeVisible (row3);
 
-    setSize (520, 410);
+    setSize (520, 570);
 }
 
 TribratEditor::~TribratEditor()
@@ -350,26 +374,36 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    // Dark background gradient
-    juce::ColourGradient bg (juce::Colour (0xff323238), 0, 0,
-                             juce::Colour (0xff262630), 0, (float) getHeight(),
-                             false);
-    g.setGradientFill (bg);
-    g.fillAll();
+    // Background image (gui_on.png), scaled to fill
+    if (! bgImage.isNull())
+    {
+        g.drawImage (bgImage, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit);
+    }
+    else
+    {
+        // Fallback gradient if image not available
+        juce::ColourGradient bg (juce::Colour (0xff323238), 0, 0,
+                                 juce::Colour (0xff262630), 0, (float) getHeight(),
+                                 false);
+        g.setGradientFill (bg);
+        g.fillAll();
+    }
 
-    // Separator between the two rows
-    int midY = row1.getBottom();
-    g.setColour (juce::Colour (0xff3a3a42));
-    g.drawHorizontalLine (midY, 15.0f, (float) (getWidth() - 15));
+    // Separator lines between rows
+    g.setColour (juce::Colour (0x883a3a42));
+    g.drawHorizontalLine (row1.getBottom(), 15.0f, (float) (getWidth() - 15));
+    g.drawHorizontalLine (row2.getBottom(), 15.0f, (float) (getWidth() - 15));
 }
 
 void TribratEditor::resized()
 {
     auto area = getLocalBounds();
-    titleLabel.setBounds  (area.removeFromTop (38));
-    footerLabel.setBounds (area.removeFromBottom (22));
+    titleLabel.setBounds  (area.removeFromTop (34));
+    footerLabel.setBounds (area.removeFromBottom (18));
 
-    int rowH = area.getHeight() / 2;
+    int rowH = area.getHeight() / 3;
     row1.setBounds (area.removeFromTop (rowH));
-    row2.setBounds (area);
+    row2.setBounds (area.removeFromTop (rowH));
+    row3.setBounds (area);
 }

@@ -7,7 +7,7 @@ TribratProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    for (int r = 1; r <= 2; ++r)
+    for (int r = 1; r <= 3; ++r)
     {
         auto id = [&] (const juce::String& n) { return rowParam (r, n); };
         auto nm = [&] (const juce::String& n) { return "Row " + juce::String (r) + " " + n; };
@@ -26,7 +26,7 @@ TribratProcessor::createParameterLayout()
 
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
             juce::ParameterID { id ("rate"), 1 }, nm ("Rate"),
-            juce::NormalisableRange<float> (0.5f, 15.0f, 0.01f, 0.7f),
+            juce::NormalisableRange<float> (1.0f, 15.0f, 0.01f, 0.7f),
             5.5f));
 
         params.push_back (std::make_unique<juce::AudioParameterFloat> (
@@ -67,12 +67,14 @@ void TribratProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     engine1.prepare (sampleRate, samplesPerBlock);
     engine2.prepare (sampleRate, samplesPerBlock);
+    engine3.prepare (sampleRate, samplesPerBlock);
 }
 
 void TribratProcessor::releaseResources()
 {
     engine1.reset();
     engine2.reset();
+    engine3.reset();
 }
 
 //==============================================================================
@@ -100,6 +102,7 @@ void TribratProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     engine1.process (buffer, readParams (1));   // Row 1 first
     engine2.process (buffer, readParams (2));   // Row 2 in series
+    engine3.process (buffer, readParams (3));   // Row 3 in series
 }
 
 //==============================================================================
