@@ -83,6 +83,9 @@ private:
     SVFilter formantFilters[MAX_CHANNELS][NUM_FORMANTS];
     float formantBaseFreqs[NUM_FORMANTS] = { 600.0f, 1500.0f, 2800.0f };
     int   formantUpdateCounter = 0;
+    // Per-channel running power trackers for dynamic gain compensation
+    float formantInPower[MAX_CHANNELS]  = { 1e-6f, 1e-6f };
+    float formantOutPower[MAX_CHANNELS] = { 1e-6f, 1e-6f };
 
     // Envelope -----------------------------------------------------------------
     float pitchEnvelope = 0.0f;   // slow-release envelope used only for pitch/delay mod

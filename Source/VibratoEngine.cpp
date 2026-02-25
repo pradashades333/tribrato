@@ -24,8 +24,12 @@ void VibratoEngine::reset()
     smoothedAmpDepth   = 0.0f;
 
     for (int ch = 0; ch < MAX_CHANNELS; ++ch)
+    {
+        formantInPower[ch]  = 1e-6f;
+        formantOutPower[ch] = 1e-6f;
         for (int f = 0; f < NUM_FORMANTS; ++f)
             formantFilters[ch][f].resetState();
+    }
 }
 
 //==============================================================================
@@ -60,6 +64,10 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
     const float ampDepth = p.amplitude / 100.0f;
     const float fmtDepth = p.formant   / 100.0f;
     const float varAmt   = p.variation  / 100.0f;
+
+    // 30 ms RMS tracker for dynamic formant gain compensation
+    const float fmtPowerCoeff = 1.0f - std::exp (
+                                    -1.0f / (0.030f * static_cast<float> (sr)));
 
     // Per-sample loop ----------------------------------------------------------
     for (int i = 0; i < numSamples; ++i)
@@ -182,7 +190,10 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             // Read from delay line using smoothed position (click-free)
             float delayed = readDelay (ch, smoothedDelay);
 
-            // Formant colouring with loudness compensation
+            // Always track input power (keeps tracker warm even when formant is off)
+            formantInPower[ch] += fmtPowerCoeff * (delayed * delayed - formantInPower[ch]);
+
+            // Formant colouring
             float processed = delayed;
             if (fmtDepth > 0.0f && envelope > 0.001f)
             {
@@ -190,11 +201,17 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
                 float fSum  = 0.0f;
                 for (int f = 0; f < NUM_FORMANTS; ++f)
                     fSum += formantFilters[ch][f].processBandpass (delayed);
-
-                // Compensate for level increase caused by resonant peaks
-                float fCompensation = 1.0f / (1.0f + fmtDepth * envelope * 0.35f);
-                processed = (delayed + fGain * fSum) * fCompensation;
+                processed = delayed + fGain * fSum;
             }
+
+            // Dynamic gain compensation: continuously track output/input power
+            // ratio and apply the exact inverse — works for any signal content
+            formantOutPower[ch] += fmtPowerCoeff * (processed * processed - formantOutPower[ch]);
+            const float formantGainComp = (formantOutPower[ch] > 1e-12f)
+                ? std::sqrt (formantInPower[ch] / formantOutPower[ch])
+                : 1.0f;
+            // Never boost (capped at 1.0); allow up to 6 dB of reduction max
+            processed *= juce::jlimit (0.5f, 1.0f, formantGainComp);
 
             // Tremolo with level compensation
             processed *= ampMod * ampMakeup;
