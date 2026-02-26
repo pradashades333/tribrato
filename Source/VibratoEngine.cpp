@@ -65,9 +65,10 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
     const float fmtDepth = p.formant   / 100.0f;
     const float varAmt   = p.variation  / 100.0f;
 
-    // 30 ms RMS tracker for dynamic formant gain compensation
+    // 5 ms RMS tracker — fast enough to catch level increases within one cycle
+    // (amplitude makeup uses an instant formula; this must be similarly responsive)
     const float fmtPowerCoeff = 1.0f - std::exp (
-                                    -1.0f / (0.030f * static_cast<float> (sr)));
+                                    -1.0f / (0.005f * static_cast<float> (sr)));
 
     // Per-sample loop ----------------------------------------------------------
     for (int i = 0; i < numSamples; ++i)
@@ -210,8 +211,9 @@ void VibratoEngine::process (juce::AudioBuffer<float>& buffer, const Params& p)
             const float formantGainComp = (formantOutPower[ch] > 1e-12f)
                 ? std::sqrt (formantInPower[ch] / formantOutPower[ch])
                 : 1.0f;
-            // Never boost (capped at 1.0); allow up to 6 dB of reduction max
-            processed *= juce::jlimit (0.5f, 1.0f, formantGainComp);
+            // Never boost above dry level; allow up to 12 dB of reduction
+            // (Q=2 filters can create >6 dB peaks on resonant content)
+            processed *= juce::jlimit (0.25f, 1.0f, formantGainComp);
 
             // Tremolo with level compensation
             processed *= ampMod * ampMakeup;

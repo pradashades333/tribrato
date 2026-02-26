@@ -13,7 +13,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python3:*)",
       "Bash(gh workflow run build-mac.yml --ref main)",
-      "Bash(gh run list --limit 3)"
+      "Bash(gh run list --limit 3)",
+      "Bash(gh run list --limit 2)"
     ]
   }
 }
