@@ -251,7 +251,6 @@ void RowComponent::resized()
 {
     auto area = getLocalBounds();
     int  w    = area.getWidth();
-    int  h    = area.getHeight();
 
     // ---- Controls geometry ----
     int numCols  = 7;
@@ -260,9 +259,8 @@ void RowComponent::resized()
     int trigSize = 58;
     int toggleW  = 110, toggleH = 30;
 
-    // Vertically centre the content block inside the row
-    int contentH = toggleH + 22 + knobSize + 30;   // toggle + gap + knob + labels
-    int toggleY  = (h - contentH) / 2;
+    // Push content toward the top of the row (small fixed top padding)
+    int toggleY  = 25;
     int ctrlY    = toggleY + toggleH + 22;
 
     // ---- Toggle section (centred horizontally) ----
