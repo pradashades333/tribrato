@@ -13,6 +13,7 @@ TribratLookAndFeel::TribratLookAndFeel()
 {
     knobShadowImg = loadImg (BinaryData::knob_shadow_png,
                              BinaryData::knob_shadow_pngSize);
+    knobImg = loadImg (BinaryData::knob_jpeg, BinaryData::knob_jpegSize);
 
     setColour (juce::Label::textColourId,       juce::Colour (0xff7a7a88));
     setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xff7a7a88));
@@ -40,27 +41,28 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
     float cx = bounds.getCentreX();
     float cy = bounds.getCentreY();
 
-    // 1 — Shadow image behind knob
-    if (! knobShadowImg.isNull())
-    {
-        float sz = radius * 2.8f;
-        g.drawImage (knobShadowImg,
-                     { cx - sz * 0.5f, cy - sz * 0.42f, sz, sz },
-                     RectanglePlacement::stretchToFit);
-    }
-
-    // 2 — Background arc (dark track)
-    float arcR = radius * 0.88f;
-    {
-        Path bg;
-        bg.addCentredArc (cx, cy, arcR, arcR, 0.0f, startAngle, endAngle, true);
-        g.setColour (Colour (0xff1a1a22));
-        g.strokePath (bg, PathStrokeType (3.5f, PathStrokeType::curved,
-                                          PathStrokeType::rounded));
-    }
-
-    // 3 — Blue value arc with glow
     float toAngle = startAngle + sliderPos * (endAngle - startAngle);
+
+    // 1 — Knob image, rotated around its centre
+    //     The image indicator sits at 12 o'clock; toAngle rotates it to the
+    //     correct position (JUCE convention: 0 = up, CW positive).
+    if (! knobImg.isNull())
+    {
+        float imgSize = radius * 2.0f;
+        float scaleX  = imgSize / (float) knobImg.getWidth();
+        float scaleY  = imgSize / (float) knobImg.getHeight();
+
+        auto xf = AffineTransform::translation (-(float) knobImg.getWidth()  * 0.5f,
+                                                -(float) knobImg.getHeight() * 0.5f)
+                    .followedBy (AffineTransform::scale (scaleX, scaleY))
+                    .followedBy (AffineTransform::rotation (toAngle))
+                    .followedBy (AffineTransform::translation (cx, cy));
+
+        g.drawImageTransformed (knobImg, xf, false);
+    }
+
+    // 2 — Blue glow arc drawn on top of the knob's dark outer ring
+    float arcR = radius * 0.88f;
     if (sliderPos > 0.002f)
     {
         Path arc;
@@ -76,48 +78,6 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
         g.strokePath (arc, PathStrokeType (2.5f, PathStrokeType::curved,
                                            PathStrokeType::rounded));
     }
-
-    // 4 — Knob body
-    float bodyR = radius * 0.62f;
-
-    // outer rim
-    g.setColour (Colour (0xff1a1a22));
-    g.fillEllipse (cx - bodyR - 2, cy - bodyR - 2, (bodyR + 2) * 2, (bodyR + 2) * 2);
-
-    // gradient fill
-    {
-        ColourGradient grad (Colour (0xff4a4a54), cx - bodyR * 0.3f, cy - bodyR * 0.5f,
-                             Colour (0xff28282e), cx + bodyR * 0.3f, cy + bodyR * 0.6f,
-                             true);
-        g.setGradientFill (grad);
-        g.fillEllipse (cx - bodyR, cy - bodyR, bodyR * 2, bodyR * 2);
-    }
-
-    // inner bevel
-    g.setColour (Colour (0xff353540));
-    g.drawEllipse (cx - bodyR + 1, cy - bodyR + 1, (bodyR - 1) * 2, (bodyR - 1) * 2, 0.5f);
-
-    // 5 — Rotating cross indicator
-    {
-        auto xf = AffineTransform::rotation (toAngle, cx, cy);
-        float len = bodyR * 0.42f;
-        g.setColour (Colour (0xff505058));
-
-        Path v; v.startNewSubPath (cx, cy - len); v.lineTo (cx, cy + len);
-        g.strokePath (v, PathStrokeType (1.5f), xf);
-
-        Path h; h.startNewSubPath (cx - len, cy); h.lineTo (cx + len, cy);
-        g.strokePath (h, PathStrokeType (1.5f), xf);
-    }
-
-    // 6 — Position dot
-    {
-        float d = bodyR * 0.72f;
-        float dx = cx + d * std::cos (toAngle - MathConstants<float>::halfPi);
-        float dy = cy + d * std::sin (toAngle - MathConstants<float>::halfPi);
-        g.setColour (Colour (0xff6a6a78));
-        g.fillEllipse (dx - 2, dy - 2, 4, 4);
-    }
 }
 
 //==============================================================================
@@ -132,6 +92,11 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
     {
         onImage  = loadImg (BinaryData::trigger1_on_png,  BinaryData::trigger1_on_pngSize);
         offImage = loadImg (BinaryData::trigger1_off_png, BinaryData::trigger1_off_pngSize);
+    }
+    else if (rowNumber == 3)
+    {
+        onImage  = loadImg (BinaryData::trigger3_on_png,  BinaryData::trigger3_on_pngSize);
+        offImage = loadImg (BinaryData::trigger3_off_png, BinaryData::trigger3_off_pngSize);
     }
     else
     {
@@ -185,6 +150,11 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
     {
         leftImage  = loadImg (BinaryData::toggle1_left_png,  BinaryData::toggle1_left_pngSize);
         rightImage = loadImg (BinaryData::toggle1_right_png, BinaryData::toggle1_right_pngSize);
+    }
+    else if (rowNumber == 3)
+    {
+        leftImage  = loadImg (BinaryData::toggle3_left_png,  BinaryData::toggle3_left_pngSize);
+        rightImage = loadImg (BinaryData::toggle3_right_png, BinaryData::toggle3_right_pngSize);
     }
     else
     {

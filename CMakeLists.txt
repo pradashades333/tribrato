@@ -10,6 +10,7 @@ juce_add_binary_data(TribratoBinaryData
     HEADER_NAME BinaryData.h
     NAMESPACE BinaryData
     SOURCES
+        knob.jpeg
         tribrato_ui_pngs/tribrato_ui_pngs/knob_highlight.png
         tribrato_ui_pngs/tribrato_ui_pngs/knob_shadow.png
         tribrato_ui_pngs/tribrato_ui_pngs/trigger1_off.png
