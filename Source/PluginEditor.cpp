@@ -13,7 +13,7 @@ TribratLookAndFeel::TribratLookAndFeel()
 {
     knobShadowImg = loadImg (BinaryData::knob_shadow_png,
                              BinaryData::knob_shadow_pngSize);
-    knobImg = loadImg (BinaryData::knob_jpeg, BinaryData::knob_jpegSize);
+    knobImg = loadImg (BinaryData::KNOB_NOBG_png, BinaryData::KNOB_NOBG_pngSize);
 
     setColour (juce::Label::textColourId,       juce::Colour (0xff7a7a88));
     setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xff7a7a88));
