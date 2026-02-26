@@ -104,6 +104,7 @@ private:
     TribratLookAndFeel lnf;
     RowComponent       row1, row2, row3;
     juce::Label        titleLabel, footerLabel;
+    juce::Image        bgImg;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TribratEditor)
 };

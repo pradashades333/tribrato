@@ -251,37 +251,41 @@ void RowComponent::resized()
 {
     auto area = getLocalBounds();
     int  w    = area.getWidth();
+    int  h    = area.getHeight();
 
-    // ---- Toggle section (centred at top) ----
-    int toggleW = 90, toggleH = 30;
-    int toggleX = (w - toggleW) / 2;
-    int toggleY = 2;
+    // ---- Controls geometry ----
+    int numCols  = 7;
+    int colW     = 86;
+    int knobSize = 64;
+    int trigSize = 58;
+    int toggleW  = 110, toggleH = 30;
+
+    // Vertically centre the content block inside the row
+    int contentH = toggleH + 22 + knobSize + 30;   // toggle + gap + knob + labels
+    int toggleY  = (h - contentH) / 2;
+    int ctrlY    = toggleY + toggleH + 22;
+
+    // ---- Toggle section (centred horizontally) ----
+    int startX  = (w - numCols * colW) / 2;
+    int toggleX = startX + (numCols * colW - toggleW) / 2;
     modeToggle.setBounds (toggleX, toggleY, toggleW, toggleH);
 
-    momentaryLabel.setBounds (toggleX - 82, toggleY + 7, 78, 16);
-    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 7, 50, 16);
+    momentaryLabel.setBounds (toggleX - 96, toggleY + 7, 92, 16);
+    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 7, 60, 16);
     modeLabel.setBounds      (toggleX, toggleY + toggleH, toggleW, 14);
 
-    // ---- Controls row ----
-    int numCols  = 7;
-    int colW     = 66;
-    int startX   = (w - numCols * colW) / 2;
-    int ctrlY    = toggleY + toggleH + 18;
-    int knobSize = 52;
-    int trigSize  = 48;
-
-    // Column 0 — trigger button
+    // ---- Column 0 — trigger button ----
     int col0 = startX;
     triggerButton.setBounds (col0 + (colW - trigSize) / 2, ctrlY, trigSize, trigSize);
-    triggerLabel.setBounds  (col0, ctrlY + knobSize + 2, colW, 13);
+    triggerLabel.setBounds  (col0, ctrlY + knobSize + 4, colW, 14);
 
-    // Columns 1-6 — knobs
+    // ---- Columns 1-6 — knobs ----
     for (int i = 0; i < 6; ++i)
     {
         int cx = startX + (i + 1) * colW;
         knobs[i].slider.setBounds    (cx + (colW - knobSize) / 2, ctrlY, knobSize, knobSize);
-        knobs[i].nameLabel.setBounds (cx - 2, ctrlY + knobSize + 2, colW + 4, 13);
-        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 14, colW, 13);
+        knobs[i].nameLabel.setBounds (cx - 2, ctrlY + knobSize + 4, colW + 4, 14);
+        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 18, colW, 13);
     }
 }
 
@@ -294,24 +298,17 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 {
     setLookAndFeel (&lnf);
 
-    titleLabel.setText ("TRIBRATO", juce::dontSendNotification);
-    titleLabel.setJustificationType (juce::Justification::centred);
-    titleLabel.setFont (juce::FontOptions (24.0f, juce::Font::bold));
-    titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffccccdd));
-    addAndMakeVisible (titleLabel);
+    bgImg = loadImg (BinaryData::background_jpeg, BinaryData::background_jpegSize);
 
-    footerLabel.setText ("Aramis - LASTLVL Technology",
-                         juce::dontSendNotification);
-    footerLabel.setJustificationType (juce::Justification::centred);
-    footerLabel.setFont (juce::FontOptions (9.0f));
-    footerLabel.setColour (juce::Label::textColourId, juce::Colour (0xff505058));
-    addAndMakeVisible (footerLabel);
+    // Title and footer text are already baked into background.jpeg
+    titleLabel.setVisible (false);
+    footerLabel.setVisible (false);
 
     addAndMakeVisible (row1);
     addAndMakeVisible (row2);
     addAndMakeVisible (row3);
 
-    setSize (520, 585);
+    setSize (714, 1280);
 }
 
 TribratEditor::~TribratEditor()
@@ -321,23 +318,21 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    juce::ColourGradient bg (juce::Colour (0xff323238), 0, 0,
-                             juce::Colour (0xff262630), 0, (float) getHeight(),
-                             false);
-    g.setGradientFill (bg);
-    g.fillAll();
-
-    // Separators between rows
-    g.setColour (juce::Colour (0xff3a3a42));
-    g.drawHorizontalLine (row1.getBottom(), 15.0f, (float) (getWidth() - 15));
-    g.drawHorizontalLine (row2.getBottom(), 15.0f, (float) (getWidth() - 15));
+    if (! bgImg.isNull())
+        g.drawImage (bgImg, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit);
+    else
+    {
+        g.setColour (juce::Colour (0xff2c3035));
+        g.fillAll();
+    }
 }
 
 void TribratEditor::resized()
 {
     auto area = getLocalBounds();
-    titleLabel.setBounds  (area.removeFromTop (38));
-    footerLabel.setBounds (area.removeFromBottom (22));
+    area.removeFromTop    (115);   // space for title baked into background
+    area.removeFromBottom (85);    // space for footer baked into background
 
     int rowH = area.getHeight() / 3;
     row1.setBounds (area.removeFromTop (rowH));
