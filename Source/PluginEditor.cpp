@@ -259,9 +259,9 @@ void RowComponent::resized()
     int trigSize = 58;
     int toggleW  = 110, toggleH = 30;
 
-    // Push content toward the top of the row (small fixed top padding)
-    int toggleY  = 25;
-    int ctrlY    = toggleY + toggleH + 22;
+    // Small top padding — rows are now ~197px so content fills them well
+    int toggleY  = 12;
+    int ctrlY    = toggleY + toggleH + 16;
 
     // ---- Toggle section (centred horizontally) ----
     int startX  = (w - numCols * colW) / 2;
@@ -306,7 +306,7 @@ TribratEditor::TribratEditor (TribratProcessor& p)
     addAndMakeVisible (row2);
     addAndMakeVisible (row3);
 
-    setSize (714, 1280);
+    setSize (714, 700);
 }
 
 TribratEditor::~TribratEditor()
@@ -329,8 +329,8 @@ void TribratEditor::paint (juce::Graphics& g)
 void TribratEditor::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop    (115);   // space for title baked into background
-    area.removeFromBottom (85);    // space for footer baked into background
+    area.removeFromTop    (63);    // title area (proportional to 714x700 scale)
+    area.removeFromBottom (47);    // footer area (proportional to 714x700 scale)
 
     int rowH = area.getHeight() / 3;
     row1.setBounds (area.removeFromTop (rowH));
