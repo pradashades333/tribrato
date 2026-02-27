@@ -1,4 +1,4 @@
-name: Build macOS VST3
+name: Build VST3 (macOS + Windows)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,9 @@ on:
     branches: [main]
 
 jobs:
-  build:
+
+  # ── macOS ──────────────────────────────────────────────────────────────────
+  build-macos:
     runs-on: macos-latest
 
     steps:
@@ -42,3 +44,30 @@ jobs:
         with:
           name: Tribrato-macOS-VST3
           path: Tribrato-macOS-VST3.zip
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --target Tribrato_VST3 -j $env:NUMBER_OF_PROCESSORS
+
+      - name: Package VST3
+        run: |
+          $vst3 = Get-ChildItem -Recurse -Filter "Tribrato.vst3" -Directory | Select-Object -First 1
+          Compress-Archive -Path $vst3.FullName -DestinationPath "$env:GITHUB_WORKSPACE\Tribrato-Windows-VST3.zip"
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tribrato-Windows-VST3
+          path: Tribrato-Windows-VST3.zip
