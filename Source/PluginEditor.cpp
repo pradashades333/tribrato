@@ -227,9 +227,9 @@ void ImageToggle::paint (juce::Graphics& g)
     float bW = b.getWidth();
     float bH = b.getHeight();
 
-    // Track: fixed 48×14px pill (locked size per spec)
+    // Track: wide pill matching reference (~70px wide, 14px tall)
     float trackH      = 14.0f;
-    float trackW      = 48.0f;
+    float trackW      = 70.0f;
     float trackX      = (bW - trackW) * 0.5f;
     float trackY      = (bH - trackH) * 0.5f;
     float trackCorner = 50.0f;   // border-radius: 50px — pill ends
@@ -365,8 +365,8 @@ void RowComponent::resized()
     int numCols  = 7;
     int colW     = 52;       // tight cluster for 500px width
     int knobSize = 46;
-    int trigSize = 36;
-    int toggleW  = 60, toggleH = 26;
+    int trigSize = 52;       // large — matches reference (fills the column)
+    int toggleW  = 70, toggleH = 26;
 
     // Spread vertically to fill taller 850px rows (~241px each)
     int toggleY  = 30;
@@ -383,7 +383,7 @@ void RowComponent::resized()
 
     // ---- Column 0 — trigger button ----
     int col0 = startX;
-    triggerButton.setBounds (col0 + (colW - trigSize) / 2, ctrlY + (knobSize - trigSize) / 2,
+    triggerButton.setBounds (col0 + (colW - trigSize) / 2, ctrlY - (trigSize - knobSize) / 2,
                              trigSize, trigSize);
     triggerLabel.setBounds  (col0, ctrlY + knobSize + 4, colW, 13);
 
@@ -447,22 +447,29 @@ void TribratEditor::paint (juce::Graphics& g)
     g.setColour (Colour (0xff0d1014));
     g.drawRect (getLocalBounds(), 2);
 
-    // 2 — Engraved TRIBRATO title
-    //     Simulate CSS: color:#15181c + text-shadow: 0px 1px 1px rgba(255,255,255,0.15)
+    // 2 — TRIBRATO title: bright white, matching reference
     Font titleFont (FontOptions (juce::Font::getDefaultMonospacedFontName(), 28.0f, Font::bold));
     g.setFont (titleFont);
 
     Rectangle<float> titleArea (0.0f, 12.0f, W, 58.0f);
 
-    // Light catch 1px below (text-shadow rgba(255,255,255,0.15) ≈ alpha 0x26)
-    g.setColour (Colour (0x26ffffff));
+    // Subtle dark drop-shadow 1px below for depth
+    g.setColour (Colour (0x80000000));
     g.drawText ("TRIBRATO", titleArea.translated (0.0f, 1.0f),
                 Justification::centred, false);
 
-    // Dark engraved text (#15181c)
-    g.setColour (Colour (0xff15181c));
+    // Bright white title text
+    g.setColour (Colour (0xffd8e0e8));
     g.drawText ("TRIBRATO", titleArea,
                 Justification::centred, false);
+
+    // 3 — Separator lines between the 3 rows
+    int titleH  = 72;
+    int footerH = 55;
+    int rowH    = (getHeight() - titleH - footerH) / 3;
+    g.setColour (Colour (0xff2a3040));
+    g.drawHorizontalLine (titleH + rowH,     2.0f, W - 2.0f);
+    g.drawHorizontalLine (titleH + rowH * 2, 2.0f, W - 2.0f);
 }
 
 void TribratEditor::resized()
