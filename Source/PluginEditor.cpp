@@ -15,8 +15,8 @@ TribratLookAndFeel::TribratLookAndFeel()
                              BinaryData::knob_shadow_pngSize);
     knobImg = loadImg (BinaryData::KNOB_NOBG_png, BinaryData::KNOB_NOBG_pngSize);
 
-    setColour (juce::Label::textColourId,       juce::Colour (0xff7a7a88));
-    setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xff7a7a88));
+    setColour (juce::Label::textColourId,        juce::Colour (0xffb0b0bc));
+    setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xffb0b0bc));
     setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 }
 
@@ -43,7 +43,16 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
 
     float toAngle = startAngle + sliderPos * (endAngle - startAngle);
 
-    // 1 — Knob image, rotated around its centre
+    // 1 — Shadow under knob
+    if (! knobShadowImg.isNull())
+    {
+        float sz = radius * 2.8f;
+        g.drawImage (knobShadowImg,
+                     { cx - sz * 0.5f, cy - sz * 0.45f, sz, sz },
+                     RectanglePlacement::stretchToFit);
+    }
+
+    // 2 — Knob image, rotated around its centre
     //     The image indicator sits at 12 o'clock; toAngle rotates it to the
     //     correct position (JUCE convention: 0 = up, CW positive).
     if (! knobImg.isNull())
@@ -61,7 +70,7 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
         g.drawImageTransformed (knobImg, xf, false);
     }
 
-    // 2 — Blue glow arc drawn on top of the knob's dark outer ring
+    // 3 — Blue glow arc drawn on top of the knob's dark outer ring
     float arcR = radius * 0.88f;
     if (sliderPos > 0.002f)
     {
@@ -108,10 +117,35 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
 
 void ImageTriggerButton::paint (juce::Graphics& g)
 {
-    auto& img = currentState ? onImage : offImage;
-    if (! img.isNull())
-        g.drawImage (img, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::centred);
+    using namespace juce;
+    auto b  = getLocalBounds().toFloat().reduced (4.0f);
+    float cx = b.getCentreX(), cy = b.getCentreY();
+    float r  = jmin (b.getWidth(), b.getHeight()) * 0.5f;
+
+    if (currentState)
+    {
+        // Neon-blue outer glow rings
+        g.setColour (Colour (0x184a95d5));
+        g.fillEllipse (cx - r * 1.55f, cy - r * 1.55f, r * 3.1f, r * 3.1f);
+        g.setColour (Colour (0x384a95d5));
+        g.fillEllipse (cx - r * 1.25f, cy - r * 1.25f, r * 2.5f, r * 2.5f);
+
+        // Inner fill (dark blue)
+        g.setColour (Colour (0xff0d2540));
+        g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+
+        // Bright neon ring
+        g.setColour (Colour (0xff4a95d5));
+        g.drawEllipse (cx - r + 1.0f, cy - r + 1.0f, (r - 1.0f) * 2.0f, (r - 1.0f) * 2.0f, 2.0f);
+    }
+    else
+    {
+        // Off — dark circle, subtle rim
+        g.setColour (Colour (0xff1e1e28));
+        g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+        g.setColour (Colour (0xff484858));
+        g.drawEllipse (cx - r + 1.0f, cy - r + 1.0f, (r - 1.0f) * 2.0f, (r - 1.0f) * 2.0f, 1.5f);
+    }
 }
 
 void ImageTriggerButton::mouseDown (const juce::MouseEvent&)
@@ -166,10 +200,41 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
 
 void ImageToggle::paint (juce::Graphics& g)
 {
-    auto& img = isRight ? rightImage : leftImage;
-    if (! img.isNull())
-        g.drawImage (img, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::centred);
+    using namespace juce;
+    auto  b       = getLocalBounds().toFloat();
+    float trackH  = b.getHeight() * 0.52f;
+    float trackW  = b.getWidth()  * 0.90f;
+    float trackX  = (b.getWidth()  - trackW) * 0.5f;
+    float trackY  = (b.getHeight() - trackH) * 0.5f;
+    float corner  = trackH * 0.5f;
+    float thumbR  = trackH * 0.42f;
+
+    // Track background
+    Rectangle<float> track (trackX, trackY, trackW, trackH);
+    g.setColour (Colour (0xff1e1e28));
+    g.fillRoundedRectangle (track, corner);
+    g.setColour (Colour (0xff404050));
+    g.drawRoundedRectangle (track, corner, 1.0f);
+
+    // Thumb position: left = momentary, right = latch
+    float thumbCX = isRight ? trackX + trackW - thumbR - 2.0f
+                             : trackX + thumbR + 2.0f;
+    float thumbCY = trackY + trackH * 0.5f;
+
+    if (isRight)
+    {
+        // Neon glow around active thumb
+        g.setColour (Colour (0x404a95d5));
+        g.fillEllipse (thumbCX - thumbR * 1.5f, thumbCY - thumbR * 1.5f,
+                       thumbR * 3.0f, thumbR * 3.0f);
+        g.setColour (Colour (0xff4a95d5));
+        g.fillEllipse (thumbCX - thumbR, thumbCY - thumbR, thumbR * 2.0f, thumbR * 2.0f);
+    }
+    else
+    {
+        g.setColour (Colour (0xffa0a0b0));
+        g.fillEllipse (thumbCX - thumbR, thumbCY - thumbR, thumbR * 2.0f, thumbR * 2.0f);
+    }
 }
 
 void ImageToggle::mouseDown (const juce::MouseEvent&)
@@ -193,7 +258,7 @@ static void styleLabel (juce::Label& l, const juce::String& text,
     l.setText (text, juce::dontSendNotification);
     l.setJustificationType (juce::Justification::centred);
     l.setFont (juce::FontOptions (size));
-    l.setColour (juce::Label::textColourId, juce::Colour (0xff6a6a78));
+    l.setColour (juce::Label::textColourId, juce::Colour (0xffb0b0bc));
     parent.addAndMakeVisible (l);
 }
 
@@ -254,36 +319,37 @@ void RowComponent::resized()
 
     // ---- Controls geometry ----
     int numCols  = 7;
-    int colW     = 86;
-    int knobSize = 64;
-    int trigSize = 58;
-    int toggleW  = 110, toggleH = 30;
+    int colW     = 72;       // tighter horizontal spacing
+    int knobSize = 60;
+    int trigSize = 46;
+    int toggleW  = 96, toggleH = 28;
 
-    // Small top padding — rows are now ~197px so content fills them well
-    int toggleY  = 12;
-    int ctrlY    = toggleY + toggleH + 16;
+    // Top padding + gap so content is balanced in each ~197px row
+    int toggleY  = 18;
+    int ctrlY    = toggleY + toggleH + 20;
 
     // ---- Toggle section (centred horizontally) ----
     int startX  = (w - numCols * colW) / 2;
     int toggleX = startX + (numCols * colW - toggleW) / 2;
     modeToggle.setBounds (toggleX, toggleY, toggleW, toggleH);
 
-    momentaryLabel.setBounds (toggleX - 96, toggleY + 7, 92, 16);
-    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 7, 60, 16);
-    modeLabel.setBounds      (toggleX, toggleY + toggleH, toggleW, 14);
+    momentaryLabel.setBounds (toggleX - 90, toggleY + 6, 86, 16);
+    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 6, 52, 16);
+    modeLabel.setBounds      (toggleX, toggleY + toggleH + 1, toggleW, 13);
 
     // ---- Column 0 — trigger button ----
     int col0 = startX;
-    triggerButton.setBounds (col0 + (colW - trigSize) / 2, ctrlY, trigSize, trigSize);
-    triggerLabel.setBounds  (col0, ctrlY + knobSize + 4, colW, 14);
+    triggerButton.setBounds (col0 + (colW - trigSize) / 2, ctrlY + (knobSize - trigSize) / 2,
+                             trigSize, trigSize);
+    triggerLabel.setBounds  (col0, ctrlY + knobSize + 4, colW, 13);
 
     // ---- Columns 1-6 — knobs ----
     for (int i = 0; i < 6; ++i)
     {
         int cx = startX + (i + 1) * colW;
         knobs[i].slider.setBounds    (cx + (colW - knobSize) / 2, ctrlY, knobSize, knobSize);
-        knobs[i].nameLabel.setBounds (cx - 2, ctrlY + knobSize + 4, colW + 4, 14);
-        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 18, colW, 13);
+        knobs[i].nameLabel.setBounds (cx - 2, ctrlY + knobSize + 4, colW + 4, 13);
+        knobs[i].valueLabel.setBounds(cx, ctrlY + knobSize + 17, colW, 12);
     }
 }
 
@@ -329,8 +395,8 @@ void TribratEditor::paint (juce::Graphics& g)
 void TribratEditor::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop    (63);    // title area (proportional to 714x700 scale)
-    area.removeFromBottom (47);    // footer area (proportional to 714x700 scale)
+    area.removeFromTop    (72);    // title area — increased for more top breathing room
+    area.removeFromBottom (55);    // footer area — increased for more bottom breathing room
 
     int rowH = area.getHeight() / 3;
     row1.setBounds (area.removeFromTop (rowH));
