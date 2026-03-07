@@ -118,33 +118,32 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
 void ImageTriggerButton::paint (juce::Graphics& g)
 {
     using namespace juce;
-    auto b  = getLocalBounds().toFloat().reduced (4.0f);
-    float cx = b.getCentreX(), cy = b.getCentreY();
-    float r  = jmin (b.getWidth(), b.getHeight()) * 0.5f;
+    auto  b      = getLocalBounds().toFloat().reduced (4.0f);
+    float corner = 5.0f;
 
     if (currentState)
     {
-        // Neon-blue outer glow rings
+        // Neon-blue outer glow layers
         g.setColour (Colour (0x184a95d5));
-        g.fillEllipse (cx - r * 1.55f, cy - r * 1.55f, r * 3.1f, r * 3.1f);
+        g.fillRoundedRectangle (b.expanded (7.0f), corner + 3.5f);
         g.setColour (Colour (0x384a95d5));
-        g.fillEllipse (cx - r * 1.25f, cy - r * 1.25f, r * 2.5f, r * 2.5f);
+        g.fillRoundedRectangle (b.expanded (3.5f), corner + 1.5f);
 
-        // Inner fill (dark blue)
+        // Dark-blue inner fill
         g.setColour (Colour (0xff0d2540));
-        g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+        g.fillRoundedRectangle (b, corner);
 
-        // Bright neon ring
+        // Bright neon border
         g.setColour (Colour (0xff4a95d5));
-        g.drawEllipse (cx - r + 1.0f, cy - r + 1.0f, (r - 1.0f) * 2.0f, (r - 1.0f) * 2.0f, 2.0f);
+        g.drawRoundedRectangle (b.reduced (1.0f), corner - 0.5f, 1.5f);
     }
     else
     {
-        // Off — dark circle, subtle rim
+        // Off — dark rounded square, subtle rim
         g.setColour (Colour (0xff1e1e28));
-        g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+        g.fillRoundedRectangle (b, corner);
         g.setColour (Colour (0xff484858));
-        g.drawEllipse (cx - r + 1.0f, cy - r + 1.0f, (r - 1.0f) * 2.0f, (r - 1.0f) * 2.0f, 1.5f);
+        g.drawRoundedRectangle (b.reduced (0.5f), corner - 0.5f, 1.0f);
     }
 }
 
@@ -201,39 +200,46 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
 void ImageToggle::paint (juce::Graphics& g)
 {
     using namespace juce;
-    auto  b       = getLocalBounds().toFloat();
-    float trackH  = b.getHeight() * 0.52f;
-    float trackW  = b.getWidth()  * 0.90f;
-    float trackX  = (b.getWidth()  - trackW) * 0.5f;
-    float trackY  = (b.getHeight() - trackH) * 0.5f;
-    float corner  = trackH * 0.5f;
-    float thumbR  = trackH * 0.42f;
+    auto  b         = getLocalBounds().toFloat();
+    float bW        = b.getWidth();
+    float bH        = b.getHeight();
 
-    // Track background
+    // Compact track: just wide enough for the square thumb to slide
+    float thumbSide = bH * 0.68f;
+    float pad       = 2.0f;
+    float trackH    = thumbSide + pad * 2.0f;
+    float trackW    = thumbSide * 2.2f;
+    float trackX    = (bW - trackW) * 0.5f;
+    float trackY    = (bH - trackH) * 0.5f;
+    float corner    = trackH * 0.38f;
+    float thumbCorner = 3.5f;
+
+    // Track
     Rectangle<float> track (trackX, trackY, trackW, trackH);
-    g.setColour (Colour (0xff1e1e28));
+    g.setColour (Colour (0xff1a1a24));
     g.fillRoundedRectangle (track, corner);
-    g.setColour (Colour (0xff404050));
+    g.setColour (Colour (0xff3a3a4a));
     g.drawRoundedRectangle (track, corner, 1.0f);
 
-    // Thumb position: left = momentary, right = latch
-    float thumbCX = isRight ? trackX + trackW - thumbR - 2.0f
-                             : trackX + thumbR + 2.0f;
-    float thumbCY = trackY + trackH * 0.5f;
+    // Thumb — rounded square that fills the track height
+    float thumbX = isRight ? trackX + trackW - thumbSide - pad
+                            : trackX + pad;
+    float thumbY = trackY + pad;
+    Rectangle<float> thumb (thumbX, thumbY, thumbSide, thumbSide);
 
     if (isRight)
     {
-        // Neon glow around active thumb
+        // Neon-blue glow behind thumb
         g.setColour (Colour (0x404a95d5));
-        g.fillEllipse (thumbCX - thumbR * 1.5f, thumbCY - thumbR * 1.5f,
-                       thumbR * 3.0f, thumbR * 3.0f);
+        g.fillRoundedRectangle (thumb.expanded (3.5f), thumbCorner + 2.0f);
+        // Neon-blue thumb
         g.setColour (Colour (0xff4a95d5));
-        g.fillEllipse (thumbCX - thumbR, thumbCY - thumbR, thumbR * 2.0f, thumbR * 2.0f);
+        g.fillRoundedRectangle (thumb, thumbCorner);
     }
     else
     {
-        g.setColour (Colour (0xffa0a0b0));
-        g.fillEllipse (thumbCX - thumbR, thumbCY - thumbR, thumbR * 2.0f, thumbR * 2.0f);
+        g.setColour (Colour (0xff9090a0));
+        g.fillRoundedRectangle (thumb, thumbCorner);
     }
 }
 
@@ -319,10 +325,10 @@ void RowComponent::resized()
 
     // ---- Controls geometry ----
     int numCols  = 7;
-    int colW     = 72;       // tighter horizontal spacing
-    int knobSize = 60;
-    int trigSize = 46;
-    int toggleW  = 96, toggleH = 28;
+    int colW     = 66;       // tighter horizontal spacing
+    int knobSize = 58;
+    int trigSize = 44;
+    int toggleW  = 90, toggleH = 26;
 
     // Top padding + gap so content is balanced in each ~197px row
     int toggleY  = 18;
@@ -362,11 +368,21 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 {
     setLookAndFeel (&lnf);
 
-    bgImg = loadImg (BinaryData::background_jpeg, BinaryData::background_jpegSize);
+    // Title — clean engraved look, no heavy drop shadow
+    titleLabel.setText ("TRIBRATO", juce::dontSendNotification);
+    titleLabel.setJustificationType (juce::Justification::centred);
+    titleLabel.setFont (juce::FontOptions (26.0f, juce::Font::bold));
+    titleLabel.setColour (juce::Label::textColourId,       juce::Colour (0xffc4c8d0));
+    titleLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible (titleLabel);
 
-    // Title and footer text are already baked into background.jpeg
-    titleLabel.setVisible (false);
-    footerLabel.setVisible (false);
+    footerLabel.setText ("Aramis - LASTLVL Technology\xe2\x84\xa2",
+                         juce::dontSendNotification);
+    footerLabel.setJustificationType (juce::Justification::centred);
+    footerLabel.setFont (juce::FontOptions (9.0f));
+    footerLabel.setColour (juce::Label::textColourId,       juce::Colour (0xff606070));
+    footerLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible (footerLabel);
 
     addAndMakeVisible (row1);
     addAndMakeVisible (row2);
@@ -382,21 +398,26 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    if (! bgImg.isNull())
-        g.drawImage (bgImg, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::stretchToFit);
-    else
-    {
-        g.setColour (juce::Colour (0xff2c3035));
-        g.fillAll();
-    }
+    // Continuous dark-metallic panel — no separator lines
+    juce::ColourGradient bg (juce::Colour (0xff2c343d), 0.0f, 0.0f,
+                              juce::Colour (0xff1a2028), 0.0f, (float) getHeight(), false);
+    g.setGradientFill (bg);
+    g.fillAll();
+
+    // Subtle centre radial sheen for metallic depth
+    juce::ColourGradient shine (juce::Colour (0x0cffffff),
+                                 (float) getWidth() * 0.5f, (float) getHeight() * 0.2f,
+                                 juce::Colours::transparentWhite,
+                                 (float) getWidth() * 0.5f, (float) getHeight() * 0.8f, true);
+    g.setGradientFill (shine);
+    g.fillAll();
 }
 
 void TribratEditor::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop    (72);    // title area — increased for more top breathing room
-    area.removeFromBottom (55);    // footer area — increased for more bottom breathing room
+    titleLabel.setBounds  (area.removeFromTop    (72));
+    footerLabel.setBounds (area.removeFromBottom (55));
 
     int rowH = area.getHeight() / 3;
     row1.setBounds (area.removeFromTop (rowH));
