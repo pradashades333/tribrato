@@ -118,32 +118,52 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
 void ImageTriggerButton::paint (juce::Graphics& g)
 {
     using namespace juce;
-    auto  b      = getLocalBounds().toFloat().reduced (4.0f);
-    float corner = 5.0f;
+    auto  b      = getLocalBounds().toFloat().reduced (3.0f);
+    float corner = 6.0f;
+
+    // Outer raised frame: gradient bevel (light top-left, dark bottom-right)
+    ColourGradient frame (Colour (0xff4a5a6a), b.getX(), b.getY(),
+                          Colour (0xff1a2530), b.getRight(), b.getBottom(), false);
+    g.setGradientFill (frame);
+    g.fillRoundedRectangle (b, corner);
+
+    // Inner recessed area (inset by 3px from the frame)
+    auto inner = b.reduced (3.0f);
+    float innerCorner = corner - 1.5f;
 
     if (currentState)
     {
-        // Neon-blue outer glow layers
-        g.setColour (Colour (0x184a95d5));
-        g.fillRoundedRectangle (b.expanded (7.0f), corner + 3.5f);
+        // Wide neon-blue outer glow behind the whole button
+        g.setColour (Colour (0x204a95d5));
+        g.fillRoundedRectangle (b.expanded (6.0f), corner + 3.0f);
         g.setColour (Colour (0x384a95d5));
-        g.fillRoundedRectangle (b.expanded (3.5f), corner + 1.5f);
+        g.fillRoundedRectangle (b.expanded (2.5f), corner + 1.0f);
 
-        // Dark-blue inner fill
-        g.setColour (Colour (0xff0d2540));
+        // Redraw frame (glow may have overdrawn it)
+        g.setGradientFill (frame);
         g.fillRoundedRectangle (b, corner);
 
-        // Bright neon border
+        // Recessed inner: dark blue fill
+        ColourGradient innerFill (Colour (0xff0a1f35), inner.getX(), inner.getY(),
+                                  Colour (0xff0d2845), inner.getX(), inner.getBottom(), false);
+        g.setGradientFill (innerFill);
+        g.fillRoundedRectangle (inner, innerCorner);
+
+        // Neon border inside the recess
         g.setColour (Colour (0xff4a95d5));
-        g.drawRoundedRectangle (b.reduced (1.0f), corner - 0.5f, 1.5f);
+        g.drawRoundedRectangle (inner.reduced (0.5f), innerCorner - 0.5f, 1.5f);
     }
     else
     {
-        // Off — dark rounded square, subtle rim
-        g.setColour (Colour (0xff1e1e28));
-        g.fillRoundedRectangle (b, corner);
-        g.setColour (Colour (0xff484858));
-        g.drawRoundedRectangle (b.reduced (0.5f), corner - 0.5f, 1.0f);
+        // Recessed inner: very dark, almost black
+        ColourGradient innerFill (Colour (0xff16202a), inner.getX(), inner.getY(),
+                                  Colour (0xff0e161e), inner.getX(), inner.getBottom(), false);
+        g.setGradientFill (innerFill);
+        g.fillRoundedRectangle (inner, innerCorner);
+
+        // Subtle inset rim
+        g.setColour (Colour (0xff0a1018));
+        g.drawRoundedRectangle (inner.reduced (0.5f), innerCorner - 0.5f, 1.0f);
     }
 }
 
@@ -200,45 +220,52 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
 void ImageToggle::paint (juce::Graphics& g)
 {
     using namespace juce;
-    auto  b         = getLocalBounds().toFloat();
-    float bW        = b.getWidth();
-    float bH        = b.getHeight();
+    auto  b  = getLocalBounds().toFloat();
+    float bW = b.getWidth();
+    float bH = b.getHeight();
 
-    // Compact track: just wide enough for the square thumb to slide
-    float thumbSide = bH * 0.68f;
-    float pad       = 2.0f;
-    float trackH    = thumbSide + pad * 2.0f;
-    float trackW    = thumbSide * 2.2f;
+    // Thin inset pill track (~12px tall, 40px wide)
+    float trackH    = 12.0f;
+    float trackW    = 42.0f;
     float trackX    = (bW - trackW) * 0.5f;
     float trackY    = (bH - trackH) * 0.5f;
-    float corner    = trackH * 0.38f;
-    float thumbCorner = 3.5f;
+    float trackCorner = trackH * 0.5f;   // fully rounded pill
 
-    // Track
     Rectangle<float> track (trackX, trackY, trackW, trackH);
-    g.setColour (Colour (0xff1a1a24));
-    g.fillRoundedRectangle (track, corner);
-    g.setColour (Colour (0xff3a3a4a));
-    g.drawRoundedRectangle (track, corner, 1.0f);
 
-    // Thumb — rounded square that fills the track height
-    float thumbX = isRight ? trackX + trackW - thumbSide - pad
-                            : trackX + pad;
-    float thumbY = trackY + pad;
-    Rectangle<float> thumb (thumbX, thumbY, thumbSide, thumbSide);
+    // Inset track: dark fill + darker stroke to make it look recessed
+    g.setColour (Colour (0xff111820));
+    g.fillRoundedRectangle (track, trackCorner);
+    g.setColour (Colour (0xff090e14));
+    g.drawRoundedRectangle (track.reduced (0.5f), trackCorner, 1.0f);
+
+    // Sleek rectangular thumb: wider than tall, small corner radius
+    float thumbH   = trackH - 4.0f;               // 8px tall
+    float thumbW   = thumbH * 1.5f;               // 12px wide
+    float thumbCorner = 2.0f;
+    float thumbY   = trackY + (trackH - thumbH) * 0.5f;
+    float thumbX   = isRight ? trackX + trackW - thumbW - 3.0f
+                              : trackX + 3.0f;
+
+    Rectangle<float> thumb (thumbX, thumbY, thumbW, thumbH);
 
     if (isRight)
     {
-        // Neon-blue glow behind thumb
-        g.setColour (Colour (0x404a95d5));
-        g.fillRoundedRectangle (thumb.expanded (3.5f), thumbCorner + 2.0f);
-        // Neon-blue thumb
-        g.setColour (Colour (0xff4a95d5));
+        // Subtle neon glow
+        g.setColour (Colour (0x504a95d5));
+        g.fillRoundedRectangle (thumb.expanded (2.5f), thumbCorner + 1.5f);
+        // Bright metallic-blue thumb
+        ColourGradient thumbFill (Colour (0xff6ab0e8), thumbX, thumbY,
+                                  Colour (0xff2a6aaa), thumbX, thumbY + thumbH, false);
+        g.setGradientFill (thumbFill);
         g.fillRoundedRectangle (thumb, thumbCorner);
     }
     else
     {
-        g.setColour (Colour (0xff9090a0));
+        // Inactive: muted grey metallic thumb
+        ColourGradient thumbFill (Colour (0xff6a7080), thumbX, thumbY,
+                                  Colour (0xff3a4050), thumbX, thumbY + thumbH, false);
+        g.setGradientFill (thumbFill);
         g.fillRoundedRectangle (thumb, thumbCorner);
     }
 }
@@ -339,8 +366,8 @@ void RowComponent::resized()
     int toggleX = startX + (numCols * colW - toggleW) / 2;
     modeToggle.setBounds (toggleX, toggleY, toggleW, toggleH);
 
-    momentaryLabel.setBounds (toggleX - 90, toggleY + 6, 86, 16);
-    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 6, 52, 16);
+    momentaryLabel.setBounds (toggleX - 90, toggleY + 5, 86, 16);
+    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 5, 52, 16);
     modeLabel.setBounds      (toggleX, toggleY + toggleH + 1, toggleW, 13);
 
     // ---- Column 0 — trigger button ----
@@ -368,19 +395,16 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 {
     setLookAndFeel (&lnf);
 
-    // Title — clean engraved look, no heavy drop shadow
-    titleLabel.setText ("TRIBRATO", juce::dontSendNotification);
-    titleLabel.setJustificationType (juce::Justification::centred);
-    titleLabel.setFont (juce::FontOptions (26.0f, juce::Font::bold));
-    titleLabel.setColour (juce::Label::textColourId,       juce::Colour (0xffc4c8d0));
-    titleLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    // Title drawn engraved in paint() — keep label invisible but in layout
+    titleLabel.setVisible (false);
     addAndMakeVisible (titleLabel);
 
-    footerLabel.setText ("Aramis - LASTLVL Technology\xe2\x84\xa2",
+    // Footer — correct UTF-8 encoding for ™
+    footerLabel.setText (juce::String::fromUTF8 ("Aramis - LASTLVL Technology\xe2\x84\xa2"),
                          juce::dontSendNotification);
     footerLabel.setJustificationType (juce::Justification::centred);
     footerLabel.setFont (juce::FontOptions (9.0f));
-    footerLabel.setColour (juce::Label::textColourId,       juce::Colour (0xff606070));
+    footerLabel.setColour (juce::Label::textColourId,       juce::Colour (0xff606878));
     footerLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (footerLabel);
 
@@ -398,19 +422,45 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    // Continuous dark-metallic panel — no separator lines
-    juce::ColourGradient bg (juce::Colour (0xff2c343d), 0.0f, 0.0f,
-                              juce::Colour (0xff1a2028), 0.0f, (float) getHeight(), false);
+    using namespace juce;
+    float W = (float) getWidth();
+    float H = (float) getHeight();
+
+    // 1 — Dark metallic gradient (lighter at top, darker at bottom)
+    ColourGradient bg (Colour (0xff2e3840), 0.0f, 0.0f,
+                       Colour (0xff141c24), 0.0f, H, false);
+    bg.addColour (0.5, Colour (0xff222c36));
     g.setGradientFill (bg);
     g.fillAll();
 
-    // Subtle centre radial sheen for metallic depth
-    juce::ColourGradient shine (juce::Colour (0x0cffffff),
-                                 (float) getWidth() * 0.5f, (float) getHeight() * 0.2f,
-                                 juce::Colours::transparentWhite,
-                                 (float) getWidth() * 0.5f, (float) getHeight() * 0.8f, true);
-    g.setGradientFill (shine);
+    // 2 — Subtle horizontal brushed-metal sheen bands
+    ColourGradient sheen (Colour (0x12ffffff), 0.0f, H * 0.05f,
+                          Colour (0x00ffffff), 0.0f, H * 0.30f, false);
+    g.setGradientFill (sheen);
     g.fillAll();
+
+    // 3 — Vignette: dark edges, lighter centre
+    ColourGradient vignette (Colour (0x00000000), W * 0.5f, H * 0.5f,
+                             Colour (0x60000000), 0.0f, 0.0f, true);
+    g.setGradientFill (vignette);
+    g.fillAll();
+
+    // 4 — Engraved TRIBRATO title
+    //     Light catch 1 px below, then dark groove on top
+    Font titleFont (FontOptions (juce::Font::getDefaultMonospacedFontName(), 28.0f, Font::bold));
+    g.setFont (titleFont);
+
+    Rectangle<float> titleArea (0.0f, 12.0f, W, 58.0f);
+
+    // Light catch (shadow below groove — gives raised-letter illusion)
+    g.setColour (Colour (0xff4a5e70));
+    g.drawText ("TRIBRATO", titleArea.translated (0.0f, 1.0f),
+                Justification::centred, false);
+
+    // Dark groove (the engraving itself)
+    g.setColour (Colour (0xff0e1820));
+    g.drawText ("TRIBRATO", titleArea,
+                Justification::centred, false);
 }
 
 void TribratEditor::resized()
