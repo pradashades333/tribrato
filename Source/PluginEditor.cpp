@@ -227,9 +227,9 @@ void ImageToggle::paint (juce::Graphics& g)
     float bW = b.getWidth();
     float bH = b.getHeight();
 
-    // Track: wide pill — border-radius:50px gives perfect rounded ends
-    float trackH      = 12.0f;
-    float trackW      = 60.0f;
+    // Track: fixed 48×14px pill (locked size per spec)
+    float trackH      = 14.0f;
+    float trackW      = 48.0f;
     float trackX      = (bW - trackW) * 0.5f;
     float trackY      = (bH - trackH) * 0.5f;
     float trackCorner = 50.0f;   // border-radius: 50px — pill ends
@@ -246,7 +246,7 @@ void ImageToggle::paint (juce::Graphics& g)
     g.setGradientFill (insetShadow);
     g.fillRoundedRectangle (track, trackCorner);
 
-    // Thumb: small enough to have clear sliding room, overflows 2px vertically
+    // Thumb: slides within 48px track, overflows 2px vertically
     float thumbW      = 18.0f;
     float thumbH      = trackH + 4.0f;
     float thumbCorner = 4.0f;
@@ -363,14 +363,14 @@ void RowComponent::resized()
 
     // ---- Controls geometry ----
     int numCols  = 7;
-    int colW     = 66;       // tighter horizontal spacing
-    int knobSize = 58;
-    int trigSize = 44;
-    int toggleW  = 90, toggleH = 26;
+    int colW     = 52;       // tight cluster for 500px width
+    int knobSize = 46;
+    int trigSize = 36;
+    int toggleW  = 60, toggleH = 26;
 
-    // Top padding + gap so content is balanced in each ~197px row
-    int toggleY  = 18;
-    int ctrlY    = toggleY + toggleH + 20;
+    // Spread vertically to fill taller 850px rows (~241px each)
+    int toggleY  = 30;
+    int ctrlY    = toggleY + toggleH + 35;
 
     // ---- Toggle section (centred horizontally) ----
     int startX  = (w - numCols * colW) / 2;
@@ -423,7 +423,7 @@ TribratEditor::TribratEditor (TribratProcessor& p)
     addAndMakeVisible (row2);
     addAndMakeVisible (row3);
 
-    setSize (714, 700);
+    setSize (500, 850);
 }
 
 TribratEditor::~TribratEditor()
