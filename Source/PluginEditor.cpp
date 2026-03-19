@@ -295,14 +295,15 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 {
     setLookAndFeel (&lnf);
 
-    // Load the designer's full background image
-    bgImg = loadImg (BinaryData::gui_on_png, BinaryData::gui_on_pngSize);
-
-    // Title and footer are already in the background image — hide JUCE labels
     titleLabel.setVisible (false);
     addAndMakeVisible (titleLabel);
 
-    footerLabel.setVisible (false);
+    footerLabel.setText (juce::String::fromUTF8 ("Aramis - LASTLVL Technology\xe2\x84\xa2"),
+                         juce::dontSendNotification);
+    footerLabel.setJustificationType (juce::Justification::centred);
+    footerLabel.setFont (juce::FontOptions (9.0f));
+    footerLabel.setColour (juce::Label::textColourId,       juce::Colour (0xff606878));
+    footerLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (footerLabel);
 
     addAndMakeVisible (row1);
@@ -319,12 +320,36 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    // Full background from the designer's reference image
-    if (! bgImg.isNull())
-        g.drawImage (bgImg, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::stretchToFit);
-    else
-        g.fillAll (juce::Colour (0xff1e2227));  // fallback
+    using namespace juce;
+    float W = (float) getWidth();
+    float H = (float) getHeight();
+
+    // Brushed metal gradient background
+    ColourGradient bg (Colour (0xff3a414a), 0.0f, 0.0f,
+                       Colour (0xff1e2227), 0.0f, H, false);
+    g.setGradientFill (bg);
+    g.fillAll();
+
+    // Dark border
+    g.setColour (Colour (0xff0d1014));
+    g.drawRect (getLocalBounds(), 2);
+
+    // TRIBRATO title — engraved (#1e2227) with white catch below
+    Font titleFont (FontOptions (juce::Font::getDefaultMonospacedFontName(), 28.0f, Font::bold));
+    g.setFont (titleFont);
+    Rectangle<float> titleArea (0.0f, 12.0f, W, 58.0f);
+    g.setColour (Colour (0x33ffffff));
+    g.drawText ("TRIBRATO", titleArea.translated (0.0f, 1.0f), Justification::centred, false);
+    g.setColour (Colour (0xff1e2227));
+    g.drawText ("TRIBRATO", titleArea, Justification::centred, false);
+
+    // Row separator lines
+    int titleH  = 72;
+    int footerH = 55;
+    int rowH    = (getHeight() - titleH - footerH) / 3;
+    g.setColour (Colour (0xff2a3040));
+    g.drawHorizontalLine (titleH + rowH,     2.0f, W - 2.0f);
+    g.drawHorizontalLine (titleH + rowH * 2, 2.0f, W - 2.0f);
 }
 
 void TribratEditor::resized()
