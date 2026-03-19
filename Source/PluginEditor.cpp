@@ -11,13 +11,13 @@ static juce::Image loadImg (const void* data, int size)
 //==============================================================================
 TribratLookAndFeel::TribratLookAndFeel()
 {
-    knobShadowImg = loadImg (BinaryData::knob_shadow_png,
-                             BinaryData::knob_shadow_pngSize);
-    knobImg = loadImg (BinaryData::KNOB_NOBG_png, BinaryData::KNOB_NOBG_pngSize);
+    knobShadowImg    = loadImg (BinaryData::knob_shadow_png,    BinaryData::knob_shadow_pngSize);
+    knobImg          = loadImg (BinaryData::KNOB_NOBG_png,      BinaryData::KNOB_NOBG_pngSize);
+    knobHighlightImg = loadImg (BinaryData::knob_highlight_png, BinaryData::knob_highlight_pngSize);
 
-    setColour (juce::Label::textColourId,        juce::Colour (0xff8b95a1));
-    setColour (juce::Slider::textBoxTextColourId, juce::Colour (0xff8b95a1));
-    setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    setColour (juce::Label::textColourId,            juce::Colour (0xff8b95a1));
+    setColour (juce::Slider::textBoxTextColourId,     juce::Colour (0xff8b95a1));
+    setColour (juce::Slider::textBoxOutlineColourId,  juce::Colours::transparentBlack);
 }
 
 juce::Label* TribratLookAndFeel::createSliderTextBox (juce::Slider& s)
@@ -43,7 +43,7 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
 
     float toAngle = startAngle + sliderPos * (endAngle - startAngle);
 
-    // 1 — Shadow under knob
+    // 1 — Drop shadow
     if (! knobShadowImg.isNull())
     {
         float sz = radius * 2.8f;
@@ -52,9 +52,16 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
                      RectanglePlacement::stretchToFit);
     }
 
-    // 2 — Knob image, rotated around its centre
-    //     The image indicator sits at 12 o'clock; toAngle rotates it to the
-    //     correct position (JUCE convention: 0 = up, CW positive).
+    // 2 — Blue highlight ring (static, not rotated) drawn UNDER the knob body
+    if (! knobHighlightImg.isNull())
+    {
+        float sz = radius * 2.5f;
+        g.drawImage (knobHighlightImg,
+                     { cx - sz * 0.5f, cy - sz * 0.5f, sz, sz },
+                     RectanglePlacement::stretchToFit);
+    }
+
+    // 3 — Knob body, rotated to show value (indicator dot at top = 12 o'clock)
     if (! knobImg.isNull())
     {
         float imgSize = radius * 2.0f;
@@ -68,24 +75,6 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
                     .followedBy (AffineTransform::translation (cx, cy));
 
         g.drawImageTransformed (knobImg, xf, false);
-    }
-
-    // 3 — Blue glow arc drawn on top of the knob's dark outer ring
-    float arcR = radius * 0.88f;
-    if (sliderPos > 0.002f)
-    {
-        Path arc;
-        arc.addCentredArc (cx, cy, arcR, arcR, 0.0f, startAngle, toAngle, true);
-
-        g.setColour (Colour (0x204090cc));
-        g.strokePath (arc, PathStrokeType (8.0f, PathStrokeType::curved,
-                                           PathStrokeType::rounded));
-        g.setColour (Colour (0x504a90d0));
-        g.strokePath (arc, PathStrokeType (5.0f, PathStrokeType::curved,
-                                           PathStrokeType::rounded));
-        g.setColour (Colour (0xff4a95d5));
-        g.strokePath (arc, PathStrokeType (2.5f, PathStrokeType::curved,
-                                           PathStrokeType::rounded));
     }
 }
 
@@ -117,53 +106,10 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
 
 void ImageTriggerButton::paint (juce::Graphics& g)
 {
-    using namespace juce;
-    // Outer bevel container: padding 4px, border-radius 4px
-    auto  b      = getLocalBounds().toFloat().reduced (2.0f);
-    float corner = 4.0f;
-
-    // Outer dark bevel: box-shadow inset 0 2px 5px rgba(0,0,0,0.8)
-    g.setColour (Colour (0xff111418));
-    g.fillRoundedRectangle (b, corner);
-
-    ColourGradient insetShadow (Colour (0xcc000000), b.getCentreX(), b.getY(),
-                                Colour (0x00000000), b.getCentreX(), b.getY() + 8.0f, false);
-    g.setGradientFill (insetShadow);
-    g.fillRoundedRectangle (b, corner);
-
-    // Inner button: fills the bevel, border-radius 2px
-    auto  inner       = b.reduced (4.0f);
-    float innerCorner = 2.0f;
-
-    if (currentState)
-    {
-        // box-shadow: 0 0 12px #2a81ff
-        g.setColour (Colour (0x502a81ff));
-        g.fillRoundedRectangle (inner.expanded (8.0f), innerCorner + 5.0f);
-        g.setColour (Colour (0x802a81ff));
-        g.fillRoundedRectangle (inner.expanded (4.0f), innerCorner + 3.0f);
-
-        // background: #2a81ff
-        g.setColour (Colour (0xff2a81ff));
-        g.fillRoundedRectangle (inner, innerCorner);
-
-        // inset 0px 1px 2px rgba(255,255,255,0.4) — top white bloom
-        ColourGradient bloom (Colour (0x66ffffff), inner.getCentreX(), inner.getY(),
-                              Colour (0x00ffffff), inner.getCentreX(), inner.getCentreY(), false);
-        g.setGradientFill (bloom);
-        g.fillRoundedRectangle (inner, innerCorner);
-    }
-    else
-    {
-        // OFF: dark metallic inner button (same shape, unlit)
-        g.setColour (Colour (0xff1e2530));
-        g.fillRoundedRectangle (inner, innerCorner);
-
-        // Subtle top rim
-        g.setColour (Colour (0x22ffffff));
-        g.drawLine (inner.getX() + innerCorner, inner.getY() + 0.5f,
-                    inner.getRight() - innerCorner, inner.getY() + 0.5f, 1.0f);
-    }
+    auto& img = currentState ? onImage : offImage;
+    if (! img.isNull())
+        g.drawImage (img, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit);
 }
 
 void ImageTriggerButton::mouseDown (const juce::MouseEvent&)
@@ -218,66 +164,10 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
 
 void ImageToggle::paint (juce::Graphics& g)
 {
-    using namespace juce;
-    auto  b  = getLocalBounds().toFloat();
-    float bW = b.getWidth();
-    float bH = b.getHeight();
-
-    // Track: height 16px, width 44px, border-radius 16px, background #1a1d21
-    float trackH      = 16.0f;
-    float trackW      = 44.0f;
-    float trackX      = (bW - trackW) * 0.5f;
-    float trackY      = (bH - trackH) * 0.5f;
-    float trackCorner = 16.0f;   // border-radius: 16px — pill
-
-    Rectangle<float> track (trackX, trackY, trackW, trackH);
-
-    // Track fill: #1a1d21
-    g.setColour (Colour (0xff1a1d21));
-    g.fillRoundedRectangle (track, trackCorner);
-
-    // inset 0px 2px 4px rgba(0,0,0,0.9)
-    ColourGradient insetShadow (Colour (0xe6000000), trackX, trackY,
-                                Colour (0x00000000), trackX, trackY + 5.0f, false);
-    g.setGradientFill (insetShadow);
-    g.fillRoundedRectangle (track, trackCorner);
-
-    // Thumb: height 18px, width 22px, border-radius 4px
-    // Centered vertically over track (overflows 1px each side)
-    float thumbW      = 22.0f;
-    float thumbH      = 18.0f;
-    float thumbCorner = 4.0f;
-    float thumbY      = trackY + (trackH - thumbH) * 0.5f;
-    float thumbX      = isRight ? trackX + trackW - thumbW - 2.0f
-                                : trackX + 2.0f;
-
-    Rectangle<float> thumb (thumbX, thumbY, thumbW, thumbH);
-
-    if (isRight)
-    {
-        // box-shadow: 0px 0px 8px #2a81ff
-        g.setColour (Colour (0x602a81ff));
-        g.fillRoundedRectangle (thumb.expanded (4.0f), thumbCorner + 3.0f);
-
-        // background: #2a81ff
-        g.setColour (Colour (0xff2a81ff));
-        g.fillRoundedRectangle (thumb, thumbCorner);
-
-        // inset 0px 1px 2px rgba(255,255,255,0.4) — top white bloom
-        ColourGradient bloom (Colour (0x66ffffff), thumbX, thumbY,
-                              Colour (0x00ffffff), thumbX, thumbY + thumbH * 0.5f, false);
-        g.setGradientFill (bloom);
-        g.fillRoundedRectangle (thumb, thumbCorner);
-    }
-    else
-    {
-        // Inactive thumb: grey metallic, subtle shadow
-        g.setColour (Colour (0x30000000));
-        g.fillRoundedRectangle (thumb.expanded (2.0f), thumbCorner + 1.0f);
-
-        g.setColour (Colour (0xff5a6070));
-        g.fillRoundedRectangle (thumb, thumbCorner);
-    }
+    auto& img = isRight ? rightImage : leftImage;
+    if (! img.isNull())
+        g.drawImage (img, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit);
 }
 
 void ImageToggle::mouseDown (const juce::MouseEvent&)
@@ -405,17 +295,14 @@ TribratEditor::TribratEditor (TribratProcessor& p)
 {
     setLookAndFeel (&lnf);
 
-    // Title drawn engraved in paint() — keep label invisible but in layout
+    // Load the designer's full background image
+    bgImg = loadImg (BinaryData::gui_on_png, BinaryData::gui_on_pngSize);
+
+    // Title and footer are already in the background image — hide JUCE labels
     titleLabel.setVisible (false);
     addAndMakeVisible (titleLabel);
 
-    // Footer — correct UTF-8 encoding for ™
-    footerLabel.setText (juce::String::fromUTF8 ("Aramis - LASTLVL Technology\xe2\x84\xa2"),
-                         juce::dontSendNotification);
-    footerLabel.setJustificationType (juce::Justification::centred);
-    footerLabel.setFont (juce::FontOptions (9.0f));
-    footerLabel.setColour (juce::Label::textColourId,       juce::Colour (0xff606878));
-    footerLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    footerLabel.setVisible (false);
     addAndMakeVisible (footerLabel);
 
     addAndMakeVisible (row1);
@@ -432,44 +319,12 @@ TribratEditor::~TribratEditor()
 
 void TribratEditor::paint (juce::Graphics& g)
 {
-    using namespace juce;
-    float W = (float) getWidth();
-    float H = (float) getHeight();
-
-    // 1 — Brushed metal background: #3a414a → #1e2227 (top to bottom)
-    ColourGradient bg (Colour (0xff3a414a), 0.0f, 0.0f,
-                       Colour (0xff1e2227), 0.0f, H, false);
-    g.setGradientFill (bg);
-    g.fillAll();
-
-    // Dark border framing the whole plugin
-    g.setColour (Colour (0xff0d1014));
-    g.drawRect (getLocalBounds(), 2);
-
-    // 2 — TRIBRATO title: engraved dark text + white catch below
-    //     color: #1e2227  text-shadow: 0px 1px 1px rgba(255,255,255,0.2)
-    Font titleFont (FontOptions (juce::Font::getDefaultMonospacedFontName(), 28.0f, Font::bold));
-    g.setFont (titleFont);
-
-    Rectangle<float> titleArea (0.0f, 12.0f, W, 58.0f);
-
-    // White catch 1px below (text-shadow rgba(255,255,255,0.2) = alpha 0x33)
-    g.setColour (Colour (0x33ffffff));
-    g.drawText ("TRIBRATO", titleArea.translated (0.0f, 1.0f),
-                Justification::centred, false);
-
-    // Dark engraved groove (#1e2227)
-    g.setColour (Colour (0xff1e2227));
-    g.drawText ("TRIBRATO", titleArea,
-                Justification::centred, false);
-
-    // 3 — Separator lines between the 3 rows
-    int titleH  = 72;
-    int footerH = 55;
-    int rowH    = (getHeight() - titleH - footerH) / 3;
-    g.setColour (Colour (0xff2a3040));
-    g.drawHorizontalLine (titleH + rowH,     2.0f, W - 2.0f);
-    g.drawHorizontalLine (titleH + rowH * 2, 2.0f, W - 2.0f);
+    // Full background from the designer's reference image
+    if (! bgImg.isNull())
+        g.drawImage (bgImg, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit);
+    else
+        g.fillAll (juce::Colour (0xff1e2227));  // fallback
 }
 
 void TribratEditor::resized()

@@ -12,6 +12,7 @@ juce_add_binary_data(TribratoBinaryData
     SOURCES
         background.jpeg
         KNOB_NOBG.png
+        tribrato_ui_pngs/tribrato_ui_pngs/gui_on.png
         tribrato_ui_pngs/tribrato_ui_pngs/knob_highlight.png
         tribrato_ui_pngs/tribrato_ui_pngs/knob_shadow.png
         tribrato_ui_pngs/tribrato_ui_pngs/trigger1_off.png

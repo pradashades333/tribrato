@@ -18,6 +18,7 @@ public:
 private:
     juce::Image knobShadowImg;
     juce::Image knobImg;
+    juce::Image knobHighlightImg;
 };
 
 //==============================================================================
