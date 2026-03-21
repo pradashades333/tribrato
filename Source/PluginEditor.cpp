@@ -29,6 +29,29 @@ juce::Label* TribratLookAndFeel::createSliderTextBox (juce::Slider& s)
     return l;
 }
 
+void TribratLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label)
+{
+    g.fillAll (label.findColour (juce::Label::backgroundColourId));
+
+    if (! label.isBeingEdited())
+    {
+        auto font = label.getFont();
+        auto text = label.getText();
+        auto just = label.getJustificationType();
+        auto b    = label.getLocalBounds();
+
+        g.setFont (font);
+
+        // Dark drop-shadow 1px below
+        g.setColour (juce::Colour (0x80000000));
+        g.drawText (text, b.translated (0, 1), just, false);
+
+        // Bright text
+        g.setColour (juce::Colour (0xffc8d4e0));
+        g.drawText (text, b, just, false);
+    }
+}
+
 void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
     int x, int y, int width, int height,
     float sliderPos, float startAngle, float endAngle,
@@ -43,13 +66,13 @@ void TribratLookAndFeel::drawRotarySlider (juce::Graphics& g,
 
     float toAngle = startAngle + sliderPos * (endAngle - startAngle);
 
-    // 1 — Drop shadow
-    if (! knobShadowImg.isNull())
+    // 1 — Drop shadow: soft radial gradient (PNG has white bg, use gradient instead)
     {
-        float sz = radius * 2.8f;
-        g.drawImage (knobShadowImg,
-                     { cx - sz * 0.5f, cy - sz * 0.45f, sz, sz },
-                     RectanglePlacement::stretchToFit);
+        float sz = radius * 1.6f;
+        ColourGradient shadowGrad (Colour (0x70000000), cx, cy + sz * 0.15f,
+                                   Colour (0x00000000), cx + sz, cy + sz * 0.15f, true);
+        g.setGradientFill (shadowGrad);
+        g.fillEllipse (cx - sz, cy - sz * 0.7f, sz * 2.0f, sz * 2.0f);
     }
 
     // 2 — Blue highlight ring (static, not rotated) drawn UNDER the knob body
@@ -109,7 +132,7 @@ void ImageTriggerButton::paint (juce::Graphics& g)
     auto& img = currentState ? onImage : offImage;
     if (! img.isNull())
         g.drawImage (img, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::stretchToFit);
+                     juce::RectanglePlacement::centred);
 }
 
 void ImageTriggerButton::mouseDown (const juce::MouseEvent&)
@@ -255,7 +278,7 @@ void RowComponent::resized()
     int colW     = 52;       // tight cluster for 500px width
     int knobSize = 46;
     int trigSize = knobSize; // same size as a single knob
-    int toggleW  = 70, toggleH = 26;
+    int toggleW  = 56, toggleH = 26;   // narrower proportions
 
     // Spread vertically to fill taller 850px rows (~241px each)
     int toggleY  = 30;
@@ -266,8 +289,9 @@ void RowComponent::resized()
     int toggleX = startX + (numCols * colW - toggleW) / 2;
     modeToggle.setBounds (toggleX, toggleY, toggleW, toggleH);
 
-    momentaryLabel.setBounds (toggleX - 90, toggleY + 5, 86, 16);
-    latchLabel.setBounds     (toggleX + toggleW + 4, toggleY + 5, 52, 16);
+    // Labels 2px from toggle edges (closer than before)
+    momentaryLabel.setBounds (toggleX - 72, toggleY + 5, 70, 16);
+    latchLabel.setBounds     (toggleX + toggleW + 2, toggleY + 5, 44, 16);
     modeLabel.setBounds      (toggleX, toggleY + toggleH + 1, toggleW, 13);
 
     // ---- Column 0 — trigger button ----

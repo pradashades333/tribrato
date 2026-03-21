@@ -13,6 +13,8 @@ public:
                            float sliderPos, float startAngle, float endAngle,
                            juce::Slider&) override;
 
+    void drawLabel (juce::Graphics&, juce::Label&) override;
+
     juce::Label* createSliderTextBox (juce::Slider&) override;
 
 private:
