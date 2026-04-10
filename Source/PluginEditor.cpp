@@ -130,9 +130,16 @@ ImageTriggerButton::ImageTriggerButton (juce::RangedAudioParameter& tp,
 void ImageTriggerButton::paint (juce::Graphics& g)
 {
     auto& img = currentState ? onImage : offImage;
-    if (! img.isNull())
-        g.drawImage (img, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::centred);
+    if (img.isNull()) return;
+
+    // Clip to rounded rect so the PNG edges blend into the background
+    auto b = getLocalBounds().toFloat();
+    juce::Path clip;
+    clip.addRoundedRectangle (b, 6.0f);
+    g.saveState();
+    g.reduceClipRegion (clip);
+    g.drawImage (img, b, juce::RectanglePlacement::stretchToFit);
+    g.restoreState();
 }
 
 void ImageTriggerButton::mouseDown (const juce::MouseEvent&)
@@ -188,9 +195,23 @@ ImageToggle::ImageToggle (juce::RangedAudioParameter& p, int rowNumber)
 void ImageToggle::paint (juce::Graphics& g)
 {
     auto& img = isRight ? rightImage : leftImage;
-    if (! img.isNull())
-        g.drawImage (img, getLocalBounds().toFloat(),
-                     juce::RectanglePlacement::stretchToFit);
+    if (img.isNull()) return;
+
+    // Draw at true image aspect ratio (268x164 = 1.634:1), centred in component
+    auto b    = getLocalBounds().toFloat();
+    float ratio = 268.0f / 164.0f;
+    float drawH = b.getHeight();
+    float drawW = drawH * ratio;
+    float drawX = b.getCentreX() - drawW * 0.5f;
+    float drawY = b.getY();
+
+    juce::Path clip;
+    clip.addRoundedRectangle (drawX, drawY, drawW, drawH, 8.0f);
+    g.saveState();
+    g.reduceClipRegion (clip);
+    g.drawImage (img, { drawX, drawY, drawW, drawH },
+                 juce::RectanglePlacement::stretchToFit);
+    g.restoreState();
 }
 
 void ImageToggle::mouseDown (const juce::MouseEvent&)
@@ -278,7 +299,7 @@ void RowComponent::resized()
     int colW     = 52;       // tight cluster for 500px width
     int knobSize = 46;
     int trigSize = knobSize; // same size as a single knob
-    int toggleW  = 56, toggleH = 26;   // narrower proportions
+    int toggleW  = 43, toggleH = 26;   // true 268:164 aspect ratio
 
     // Spread vertically to fill taller 850px rows (~241px each)
     int toggleY  = 30;
