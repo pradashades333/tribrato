@@ -1,31 +1,40 @@
 cmake_minimum_required(VERSION 3.22)
-project(Tribrato VERSION 1.0.0 LANGUAGES C CXX)
+project(Tribrato VERSION 1.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(JUCE)
 
+set(NEW_GUI_DIR "New Gui/Tribrato new gui/Tribrato new gui")
+
 juce_add_binary_data(TribratoBinaryData
     HEADER_NAME BinaryData.h
     NAMESPACE BinaryData
     SOURCES
-        background.jpeg
-        KNOB_NOBG.png
-        tribrato_ui_pngs/tribrato_ui_pngs/knob_highlight.png
-        tribrato_ui_pngs/tribrato_ui_pngs/knob_shadow.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger1_off.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger1_on.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger2_off.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger2_on.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger3_off.png
-        tribrato_ui_pngs/tribrato_ui_pngs/trigger3_on.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle1_left.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle1_right.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle2_left.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle2_right.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle3_left.png
-        tribrato_ui_pngs/tribrato_ui_pngs/toggle3_right.png
+        "${NEW_GUI_DIR}/Full_bg2.png"
+        "${NEW_GUI_DIR}/divider_line.png"
+        "${NEW_GUI_DIR}/enable_hover.png"
+        "${NEW_GUI_DIR}/enable_off.png"
+        "${NEW_GUI_DIR}/enable_on.png"
+        "${NEW_GUI_DIR}/knob1.png"
+        "${NEW_GUI_DIR}/knob1_hover.png"
+        "${NEW_GUI_DIR}/knob_shadow.png"
+        "${NEW_GUI_DIR}/latch_on.png"
+        "${NEW_GUI_DIR}/momentary_on.png"
+        "${NEW_GUI_DIR}/redo_hover.png"
+        "${NEW_GUI_DIR}/redo_off.png"
+        "${NEW_GUI_DIR}/redo_on.png"
+        "${NEW_GUI_DIR}/sett_hover.png"
+        "${NEW_GUI_DIR}/sett_off.png"
+        "${NEW_GUI_DIR}/tip_hover.png"
+        "${NEW_GUI_DIR}/tip_off.png"
+        "${NEW_GUI_DIR}/tip_on.png"
+        "${NEW_GUI_DIR}/trigg_off.png"
+        "${NEW_GUI_DIR}/trigg_on.png"
+        "${NEW_GUI_DIR}/undo_hover.png"
+        "${NEW_GUI_DIR}/undo_off.png"
+        "${NEW_GUI_DIR}/undo_on.png"
 )
 
 juce_add_plugin(Tribrato

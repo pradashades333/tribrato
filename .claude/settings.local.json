@@ -14,7 +14,38 @@
       "Bash(python3:*)",
       "Bash(gh workflow run build-mac.yml --ref main)",
       "Bash(gh run list --limit 3)",
-      "Bash(gh run list --limit 2)"
+      "Bash(gh run list --limit 2)",
+      "Bash(gh workflow run build-mac.yml)",
+      "Bash(ls /c/Files/Coding/tribrato/*.png /c/Files/Coding/tribrato/*.jpg /c/Files/Coding/tribrato/*.jpeg /c/Files/Coding/tribrato/*.webp)",
+      "Bash(ls /c/Files/Coding/tribrato/*.jpeg /c/Files/Coding/tribrato/*.jpg /c/Files/Coding/tribrato/*.png)",
+      "Bash(gh run list --limit 5)",
+      "Bash(gh run view 22486784978 --log)",
+      "Bash(gh run watch 22552522844)",
+      "Bash(gh run view 22552522844 --json jobs -q '.jobs[] | {name: .name, conclusion: .conclusion}')",
+      "Bash(gh run watch 22768202036)",
+      "Bash(cp -r \"build/Tribrato_artefacts/Release/VST3/Tribrato.vst3\" \"$COMMONPROGRAMFILES/VST3/Tribrato.vst3\")",
+      "Bash(cp -r \"build/Tribrato_artefacts/Release/VST3/Tribrato.vst3\" \"C:/Program Files/Common Files/VST3/Tribrato.vst3\")",
+      "Read(//c/Files/Coding/tribrato/$APPDATA/Image-Line/FL Studio/**)",
+      "Read(//c/Users/alexd/AppData/Roaming/Image-Line/**)",
+      "Read(//c/Users/alexd/**)",
+      "Read(//c/Program Files/Common Files/VST3/Tribrato.vst3/Contents/x86_64-win/**)",
+      "Read(//c/Program Files/Common Files/VST3/Tribrato.vst3/**)",
+      "Bash(rm -rf \"C:/Program Files/Common Files/VST3/Tribrato.vst3\")",
+      "Bash(cp -r \"c:/Files/Coding/tribrato/build/Tribrato_artefacts/Release/VST3/Tribrato.vst3\" \"C:/Program Files/Common Files/VST3/Tribrato.vst3\")",
+      "Bash(find \"C:/Users/alexd/Documents/Image-Line/FL Studio/Presets/Plugin database\" -name \"*Tribrato*\" -delete)",
+      "Bash(ls c:/Files/Coding/tribrato/*.cpp c:/Files/Coding/tribrato/*.h c:/Files/Coding/tribrato/CMakeLists.txt)",
+      "Bash(gh workflow:*)",
+      "Bash(gh run:*)",
+      "Bash(python -c \"import json,sys; [print\\(f['name']\\) for f in json.load\\(sys.stdin\\)]\")",
+      "Bash(python -c \"import json,sys; [print\\(f['name']\\) for f in json.load\\(sys.stdin\\)]\" gh api repos/pradashades333/afroplug/contents/packaging)",
+      "Bash(python -c \"import json,sys,base64; print\\(base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\).decode\\(\\)\\)\")",
+      "Bash(python -c \"import json,sys,base64; print\\(base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\).decode\\(\\)\\)\" echo \"---\")",
+      "Bash(python -c \"import json,sys,base64; content=base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\).decode\\('utf-8'\\); sys.stdout.buffer.write\\(content.encode\\('utf-8'\\)\\)\")",
+      "Read(//tmp/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\alexd\\Documents\\Image-Line\\FL Studio\\Presets\\Plugin database\\Installed\\Effects\\VST3",
+      "c:\\Files\\Coding\\tribrato"
     ]
   }
 }

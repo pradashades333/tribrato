@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+  <title>Tribrato by LASTLVL</title>
+  <background file="logo.jpeg" mime-type="image/jpeg" alignment="bottomleft" scaling="tofit"/>
+  <welcome file="welcome.html" mime-type="text/html"/>
+  <license file="license.html" mime-type="text/html"/>
+  <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+  <choices-outline>
+    <line choice="vst3"/>
+  </choices-outline>
+  <choice id="vst3" title="VST3 Plugin"
+          description="Installs Tribrato VST3 to /Library/Audio/Plug-Ins/VST3">
+    <pkg-ref id="com.lastlvl.tribrato.vst3"/>
+  </choice>
+  <pkg-ref id="com.lastlvl.tribrato.vst3" version="1.0.0">Tribrato-VST3.pkg</pkg-ref>
+</installer-gui-script>

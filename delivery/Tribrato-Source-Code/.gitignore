@@ -1,0 +1,22 @@
+# Build
+build/
+cmake-build-*/
+out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln
+*.vcxproj*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+
+# JUCE managed as submodule
+__MACOSX/

@@ -1,0 +1,107 @@
+name: Build VST3 (macOS + Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+
+  # ── macOS ──────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="11.0"
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target Tribrato_VST3 -j$(sysctl -n hw.ncpu)
+
+      - name: Ad-hoc sign VST3
+        run: |
+          VST3=$(find build -name "Tribrato.vst3" -type d | head -1)
+          [ -z "$VST3" ] && echo "ERROR: VST3 not found" && exit 1
+          echo "Signing: $VST3"
+          codesign --force --deep --sign - "$VST3"
+
+      - name: Build .pkg installer
+        run: |
+          set -e
+
+          VST3=$(find build -name "Tribrato.vst3" -type d | head -1)
+          [ -z "$VST3" ] && echo "ERROR: VST3 not found" && exit 1
+          echo "VST3: $VST3"
+
+          # Stage files at final install path
+          mkdir -p pkg_stage/vst3/Library/Audio/Plug-Ins/VST3
+          cp -R "$VST3" "pkg_stage/vst3/Library/Audio/Plug-Ins/VST3/"
+
+          # Build component package
+          pkgbuild \
+            --root        pkg_stage/vst3 \
+            --identifier  com.lastlvl.tribrato.vst3 \
+            --version     1.0.0 \
+            --install-location / \
+            Tribrato-VST3.pkg
+
+          # Build final installer with logo + welcome/license screens
+          productbuild \
+            --distribution Installer/distribution.xml \
+            --resources    Installer \
+            --package-path . \
+            "Tribrato-macOS-Installer.pkg"
+
+          ls -lh Tribrato-macOS-Installer.pkg
+
+      - name: Upload .pkg installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tribrato-macOS-Installer
+          path: Tribrato-macOS-Installer.pkg
+
+      - name: Upload raw VST3 zip (fallback)
+        run: |
+          VST3=$(find build -name "Tribrato.vst3" -type d | head -1)
+          cd "$(dirname "$VST3")"
+          zip -r "$GITHUB_WORKSPACE/Tribrato-macOS-VST3.zip" "Tribrato.vst3"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tribrato-macOS-VST3
+          path: Tribrato-macOS-VST3.zip
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --target Tribrato_VST3 -j $env:NUMBER_OF_PROCESSORS
+
+      - name: Package VST3
+        run: |
+          $vst3 = Get-ChildItem -Recurse -Filter "Tribrato.vst3" -Directory | Select-Object -First 1
+          Compress-Archive -Path $vst3.FullName -DestinationPath "$env:GITHUB_WORKSPACE\Tribrato-Windows-VST3.zip"
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tribrato-Windows-VST3
+          path: Tribrato-Windows-VST3.zip
